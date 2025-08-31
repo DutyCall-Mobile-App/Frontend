@@ -92,69 +92,87 @@ export default function Dashboard() {
     }
   };
 
+  const DutyCallBackground = () => {
+    const repeatCount = 12;
+    const items = [];
+
+    for (let i = 0; i < repeatCount; i++) {
+      items.push(
+        <Text key={i} style={styles.dutyCallText}>
+          DUTY CALL
+        </Text>
+      );
+    }
+
+    return <View style={styles.dutyCallBackground}>{items}</View>;
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      <View style={styles.header}>
-        <Text style={styles.logo}>Logo</Text>
-        <TouchableOpacity style={styles.profileButton}>
-          <User size={24} color="#007AFF" />
+    <View style={styles.container}>
+      <DutyCallBackground />
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <View style={styles.header}>
+          <Text style={styles.logo}>Logo</Text>
+          <TouchableOpacity style={styles.profileButton}>
+            <User size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        <LinearGradient
+          colors={["#007AFF", "#5AC8FA"]}
+          style={styles.dateTimeCard}
+        >
+          <View style={styles.dateTimeContent}>
+            <Text style={styles.date}>{formatDate(currentDateTime)}</Text>
+            <Text style={styles.time}>{formatTime(currentDateTime)}</Text>
+            <View style={styles.profileIconContainer}>
+              <User size={24} color="rgba(255, 255, 255, 0.9)" />
+            </View>
+          </View>
+        </LinearGradient>
+
+        <TouchableOpacity
+          style={styles.myReportsButton}
+          onPress={() => router.push("/reports")}
+        >
+          <View style={styles.myReportsContent}>
+            <FileText size={20} color="#007AFF" />
+            <Text style={styles.myReportsText}>My Reports</Text>
+          </View>
+          <ChevronRight size={20} color="#C7C7CC" />
         </TouchableOpacity>
-      </View>
 
-      <LinearGradient
-        colors={["#007AFF", "#5AC8FA"]}
-        style={styles.dateTimeCard}
-      >
-        <View style={styles.dateTimeContent}>
-          <Text style={styles.date}>{formatDate(currentDateTime)}</Text>
-          <Text style={styles.time}>{formatTime(currentDateTime)}</Text>
-          <View style={styles.profileIconContainer}>
-            <User size={20} color="rgba(255, 255, 255, 0.8)" />
-          </View>
-        </View>
-      </LinearGradient>
+        <TouchableOpacity style={styles.notificationHeader}>
+          <Bell size={20} color="#007AFF" />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.myReportsButton}
-        onPress={() => router.push("/my-reports")}
-      >
-        <View style={styles.myReportsContent}>
-          <FileText size={20} color="#007AFF" />
-          <Text style={styles.myReportsText}>My Reports</Text>
-        </View>
-        <ChevronRight size={20} color="#C7C7CC" />
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.notificationHeader}>
-        <Bell size={20} color="#007AFF" />
-      </TouchableOpacity>
-
-      <View style={styles.notificationsSection}>
-        <Text style={styles.sectionTitle}>Recent Notifications</Text>
-        {notifications.map((notification) => (
-          <View
-            key={notification.id}
-            style={[
-              styles.notificationCard,
-              { backgroundColor: getNotificationColor(notification.type) },
-            ]}
-          >
-            <View style={styles.notificationIcon}>
-              {getNotificationIcon(notification.type)}
+        <View style={styles.notificationsSection}>
+          <Text style={styles.sectionTitle}>Recent Notifications</Text>
+          {notifications.map((notification) => (
+            <View
+              key={notification.id}
+              style={[
+                styles.notificationCard,
+                { backgroundColor: getNotificationColor(notification.type) },
+              ]}
+            >
+              <View style={styles.notificationIcon}>
+                {getNotificationIcon(notification.type)}
+              </View>
+              <View style={styles.notificationContent}>
+                <Text style={styles.notificationMessage}>
+                  {notification.message}
+                </Text>
+                <Text style={styles.notificationTime}>{notification.time}</Text>
+              </View>
             </View>
-            <View style={styles.notificationContent}>
-              <Text style={styles.notificationMessage}>
-                {notification.message}
-              </Text>
-              <Text style={styles.notificationTime}>{notification.time}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -162,6 +180,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F2F2F7",
+  },
+  dutyCallBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+    flexDirection: "column",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 100,
+  },
+  dutyCallText: {
+    fontSize: 120,
+    fontWeight: "900",
+    color: "rgba(3, 27, 53, 0.03)",
+    textAlign: "center",
+    letterSpacing: 8,
+    transform: [{ rotate: "-15deg" }],
+  },
+  scrollContainer: {
+    flex: 1,
+    zIndex: 1,
   },
   contentContainer: {
     paddingBottom: 100,
@@ -194,31 +236,32 @@ const styles = StyleSheet.create({
   },
   dateTimeCard: {
     marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 28,
     marginBottom: 20,
+    minHeight: 120,
   },
   dateTimeContent: {
     flexDirection: "row",
     alignItems: "center",
   },
   date: {
-    fontSize: 32,
+    fontSize: 38,
     fontWeight: "bold",
     color: "#FFFFFF",
-    marginRight: 12,
+    marginRight: 16,
   },
   time: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 24,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.95)",
     flex: 1,
   },
   profileIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
