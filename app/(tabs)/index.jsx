@@ -136,7 +136,7 @@ export default function Dashboard() {
 
         <TouchableOpacity
           style={styles.myReportsButton}
-          onPress={() => router.push("/reports")}
+          onPress={() => router.push("/my-reports")}
         >
           <View style={styles.myReportsContent}>
             <FileText size={20} color="#007AFF" />
