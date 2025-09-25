@@ -148,11 +148,12 @@ export default function ReportForm() {
 
       // Improved recording configuration for better speech recognition
       const recordingOptions = {
+        isMeteringEnabled: true,
         android: {
           extension: ".wav",
           outputFormat: Audio.AndroidOutputFormat.DEFAULT,
           audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
-          sampleRate: 16000, // Lower sample rate often works better for speech
+          sampleRate: 16000,
           numberOfChannels: 1,
           bitRate: 128000,
         },
@@ -160,11 +161,15 @@ export default function ReportForm() {
           extension: ".wav",
           audioQuality: Audio.IOSAudioQuality.HIGH,
           outputFormat: Audio.IOSOutputFormat.LINEARPCM,
-          sampleRate: 16000, // Lower sample rate for better speech recognition
+          sampleRate: 16000,
           numberOfChannels: 1,
           linearPCMBitDepth: 16,
           linearPCMIsBigEndian: false,
           linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: "audio/wav",
+          bitsPerSecond: 128000,
         },
       };
 
@@ -268,9 +273,23 @@ export default function ReportForm() {
 
   const transcribeAudio = async (uri) => {
     try {
+      setSpeechError("🔄 Converting audio to text...");
+
+      // Check if file exists first
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        throw new Error("Audio file not found");
+      }
+
+      console.log("Audio file size:", fileInfo.size, "bytes");
+
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: "base64",
       });
+
+      if (!base64) {
+        throw new Error("Failed to read audio file");
+      }
 
       // Special handling for Sinhala - try multiple approaches
       let configs = [];
@@ -344,29 +363,50 @@ export default function ReportForm() {
             continue;
           }
 
-          if (result.results && result.results[0]) {
-            const transcript = result.results[0].alternatives[0].transcript;
+          if (
+            result.results &&
+            result.results[0] &&
+            result.results[0].alternatives[0]
+          ) {
+            const transcript =
+              result.results[0].alternatives[0].transcript.trim();
             console.log("Transcript received:", transcript);
 
-            // Animate text appearing in the box sequentially
-            setSpeechError("✅ Speech recognized successfully!");
+            if (transcript) {
+              // Animate text appearing in the box sequentially
+              setSpeechError("✅ Speech recognized successfully!");
 
-            // Add the new text with a space if there's existing content
-            const currentText = description;
-            const newText = currentText
-              ? `${currentText} ${transcript}`
-              : transcript;
+              // Add the new text with a space if there's existing content
+              const currentText = description.trim();
+              const newText = currentText
+                ? `${currentText} ${transcript}`
+                : transcript;
 
-            // Animate the text by showing it word by word
-            animateTextAppearing(newText, currentText.length);
+              // Animate the text by showing it word by word
+              animateTextAppearing(newText, currentText.length);
 
-            // Clear success message after 2 seconds
-            setTimeout(() => {
-              setSpeechError("");
-            }, 2000);
+              // Clear success message after 2 seconds
+              setTimeout(() => {
+                setSpeechError("");
+              }, 2000);
 
-            setIsProcessing(false);
-            return; // Success, exit the loop
+              setIsProcessing(false);
+              return; // Success, exit the loop
+            } else {
+              console.log("Empty transcript received");
+              if (i === configs.length - 1) {
+                throw new Error(
+                  "No speech detected. Please speak more clearly."
+                );
+              }
+            }
+          } else {
+            console.log("No results in speech API response");
+            if (i === configs.length - 1) {
+              throw new Error(
+                "No speech detected. Please try speaking louder and more clearly."
+              );
+            }
           }
         } catch (err) {
           console.error(`Config ${i + 1} failed:`, err);
@@ -386,8 +426,27 @@ export default function ReportForm() {
       }, 3000);
     } catch (err) {
       console.error("Error transcribing audio", err);
-      setSpeechError(`❌ Error: ${err.message}`);
+
+      // Provide more specific error messages
+      let errorMessage = "Speech transcription failed";
+
+      if (err.message.includes("Base64") || err.message.includes("undefined")) {
+        errorMessage = "Audio file processing failed. Please try again.";
+      } else if (err.message.includes("Network")) {
+        errorMessage = "Network error. Check your internet connection.";
+      } else if (err.message.includes("API Error")) {
+        errorMessage = "Speech API error. Please try again.";
+      } else {
+        errorMessage = err.message;
+      }
+
+      setSpeechError(`❌ ${errorMessage}`);
       setIsProcessing(false);
+
+      // Clear error message after 4 seconds
+      setTimeout(() => {
+        setSpeechError("");
+      }, 4000);
     }
   };
 
