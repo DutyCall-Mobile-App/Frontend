@@ -415,22 +415,47 @@ export default function ReportForm() {
       const { coords } = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      const [address] = await Location.reverseGeocodeAsync(coords);
-      const formattedAddress = address
-        ? `${address.street || ""}, ${address.city || ""}, ${
-            address.country || ""
-          }`
-        : "Current Location";
-      setLocation({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        address: formattedAddress,
-      });
-      setQuery(formattedAddress); // Show in form
-      setResults([]); // Clear search results
-      setShowMap(true);
-      setLocationMethod("current"); // Mark as current location
+
+      // Use Google Reverse Geocoding API for better address formatting
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}`
+      );
+
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const formattedAddress = data.results[0].formatted_address;
+
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          address: formattedAddress,
+        });
+        setQuery(formattedAddress); // Show in form
+        setResults([]); // Clear search results
+        setShowMap(true);
+        setLocationMethod("current"); // Mark as current location
+      } else {
+        // Fallback to Expo's reverse geocoding if Google API fails
+        const [address] = await Location.reverseGeocodeAsync(coords);
+        const formattedAddress = address
+          ? `${address.street || ""}, ${address.city || ""}, ${
+              address.country || ""
+            }`
+          : "Current Location";
+
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          address: formattedAddress,
+        });
+        setQuery(formattedAddress);
+        setResults([]);
+        setShowMap(true);
+        setLocationMethod("current");
+      }
     } catch (error) {
+      console.error("Failed to get location:", error);
       alert("Failed to get location: " + error.message);
     }
     setIsLoading(false);

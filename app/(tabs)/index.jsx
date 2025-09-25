@@ -7,19 +7,17 @@ import {
   ChevronRight,
   FileText,
   MapPin,
+  Siren,
   User,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-const { width } = Dimensions.get("window");
 
 export default function Dashboard() {
   const router = useRouter();
@@ -128,9 +126,12 @@ export default function Dashboard() {
           <View style={styles.dateTimeContent}>
             <Text style={styles.date}>{formatDate(currentDateTime)}</Text>
             <Text style={styles.time}>{formatTime(currentDateTime)}</Text>
-            <View style={styles.profileIconContainer}>
-              <User size={24} color="rgba(255, 255, 255, 0.9)" />
-            </View>
+            <TouchableOpacity
+              style={styles.sosButton}
+              onPress={() => router.push("/emergency-sos")}
+            >
+              <Siren size={24} color="#FFFFFF" fill="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -264,6 +265,27 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  sosButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.8)",
+  },
+  sosButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
   myReportsButton: {
     flexDirection: "row",
