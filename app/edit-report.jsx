@@ -132,61 +132,98 @@ export default function EditReport() {
 
   // Get current device location
   const getCurrentLocation = async () => {
+    setSaving(true); // Use saving state as loading indicator
     const hasPermission = await requestLocationPermission();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      setSaving(false);
+      return;
+    }
 
     try {
-      const currentLocation = await Location.getCurrentPositionAsync({
+      const { coords } = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
 
-      const { latitude, longitude } = currentLocation.coords;
+      // Use Google Reverse Geocoding API for better address formatting
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}&result_type=street_address|route|premise|subpremise|neighborhood|locality|administrative_area_level_1|administrative_area_level_2|country`
+      );
 
-      // Reverse geocode to get address
-      const addressResponse = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      const data = await response.json();
 
-      let address = "Current Location";
-      if (addressResponse.length > 0) {
-        const addr = addressResponse[0];
-        address = `${addr.street || ""} ${addr.city || ""} ${
-          addr.region || ""
-        }`.trim();
+      if (data.results && data.results.length > 0) {
+        // Try to get the most specific address first
+        let formattedAddress = data.results[0].formatted_address;
+        
+        // If the first result is too generic, try to find a more specific one
+        if (data.results.length > 1) {
+          for (let i = 0; i < data.results.length; i++) {
+            const result = data.results[i];
+            const types = result.types || [];
+            
+            // Prioritize street_address, route, or premise
+            if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+              formattedAddress = result.formatted_address;
+              break;
+            }
+          }
+        }
+
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          address: formattedAddress,
+        });
+        setQuery(formattedAddress); // Show in form
+        setResults([]); // Clear search results
+        setShowMap(true);
+      } else {
+        // Fallback to Expo's reverse geocoding if Google API fails
+        const [address] = await Location.reverseGeocodeAsync(coords);
+        const formattedAddress = address
+          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+          : "Current Location";
+
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          address: formattedAddress,
+        });
+        setQuery(formattedAddress);
+        setResults([]);
+        setShowMap(true);
       }
-
-      setLocation({ latitude, longitude, address });
-      setQuery(address);
-      setResults([]);
-      setShowMap(true);
     } catch (error) {
       console.error("Error getting current location:", error);
       Alert.alert("Error", "Failed to get current location");
+    } finally {
+      setSaving(false);
     }
   };
 
   // Search Google Places API
   const searchPlaces = async (text) => {
+    setQuery(text);
     if (text.length < 3) {
       setResults([]);
       return;
     }
-
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
           text
         )}&key=${GOOGLE_API_KEY}&components=country:lk`
       );
-
-      const data = await response.json();
-
-      if (data.predictions) {
-        setResults(data.predictions);
+      const json = await response.json();
+      if (json.status !== "OK") {
+        console.error("Places API error:", json.status, json.error_message);
+        setResults([]);
+        return;
       }
+      setResults(json.predictions || []);
     } catch (error) {
-      console.error("Error searching places:", error);
+      console.error("Places API error:", error);
+      setResults([]);
     }
   };
 
@@ -194,24 +231,24 @@ export default function EditReport() {
   const handleSelectPlace = async (placeId, description) => {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry&key=${GOOGLE_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/details/json?placeid=${placeId}&key=${GOOGLE_API_KEY}`
       );
-
-      const data = await response.json();
-
-      if (data.result && data.result.geometry) {
-        const { lat, lng } = data.result.geometry.location;
-        setLocation({
-          latitude: lat,
-          longitude: lng,
-          address: description,
-        });
-        setQuery(description);
-        setResults([]);
-        setShowMap(true);
+      const json = await response.json();
+      if (json.status !== "OK") {
+        console.error("Place details error:", json.status, json.error_message);
+        return;
       }
+      const loc = json.result.geometry.location;
+      setLocation({
+        latitude: loc.lat,
+        longitude: loc.lng,
+        address: description,
+      });
+      setQuery(description); // Show in form
+      setResults([]); // Clear search results
+      setShowMap(true);
     } catch (error) {
-      console.error("Error getting place details:", error);
+      console.error("Place details error:", error);
     }
   };
 
@@ -219,6 +256,7 @@ export default function EditReport() {
   const clearLocation = () => {
     setLocation(null);
     setQuery("");
+    setResults([]);
     setShowMap(false);
   };
 
@@ -499,8 +537,9 @@ export default function EditReport() {
                   <X size={20} color="#FF3B30" />
                 </TouchableOpacity>
               </View>
-              {showMap && (
+              {showMap && location && (
                 <MapView
+                  provider="google"
                   style={styles.map}
                   initialRegion={{
                     latitude: location.latitude,
@@ -509,7 +548,65 @@ export default function EditReport() {
                     longitudeDelta: 0.01,
                   }}
                 >
-                  <Marker coordinate={location} />
+                  <Marker
+                    draggable
+                    coordinate={{
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                    }}
+                    title="Selected Location"
+                    description={location.address}
+                    onDragEnd={async (e) => {
+                      const coords = e.nativeEvent.coordinate;
+                      setLocation((prev) => ({
+                        ...prev,
+                        latitude: coords.latitude,
+                        longitude: coords.longitude,
+                      }));
+                      try {
+                        // Try Google API first for better address resolution
+                        const response = await fetch(
+                          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}&result_type=street_address|route|premise|subpremise|neighborhood|locality|administrative_area_level_1|administrative_area_level_2|country`
+                        );
+                        
+                        const data = await response.json();
+                        let formattedAddress = "Selected Location";
+                        
+                        if (data.results && data.results.length > 0) {
+                          // Try to get the most specific address first
+                          formattedAddress = data.results[0].formatted_address;
+                          
+                          // If the first result is too generic, try to find a more specific one
+                          if (data.results.length > 1) {
+                            for (let i = 0; i < data.results.length; i++) {
+                              const result = data.results[i];
+                              const types = result.types || [];
+                              
+                              // Prioritize street_address, route, or premise
+                              if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+                                formattedAddress = result.formatted_address;
+                                break;
+                              }
+                            }
+                          }
+                        } else {
+                          // Fallback to Expo's reverse geocoding
+                          const [address] = await Location.reverseGeocodeAsync(coords);
+                          formattedAddress = address
+                            ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+                            : "Selected Location";
+                        }
+                        
+                        setLocation((prev) => ({
+                          ...prev,
+                          address: formattedAddress,
+                        }));
+                        setQuery(formattedAddress); // Update form display
+                      } catch (error) {
+                        console.error("Reverse geocode error:", error);
+                      }
+                    }}
+                  />
                 </MapView>
               )}
             </>
@@ -519,10 +616,7 @@ export default function EditReport() {
                 style={styles.autocompleteInput}
                 placeholder="Search for a location..."
                 value={query}
-                onChangeText={(text) => {
-                  setQuery(text);
-                  searchPlaces(text);
-                }}
+                onChangeText={searchPlaces}
                 onFocus={() => handleTextInputFocus(300)}
               />
 
@@ -547,9 +641,10 @@ export default function EditReport() {
               <TouchableOpacity
                 style={styles.locationButton}
                 onPress={getCurrentLocation}
+                disabled={saving}
               >
                 <Text style={styles.locationButtonText}>
-                  Use Current Location
+                  {saving ? "Fetching Location..." : "Use Current Location"}
                 </Text>
               </TouchableOpacity>
             </>
