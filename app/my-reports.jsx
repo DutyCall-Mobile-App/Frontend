@@ -57,35 +57,26 @@ export default function MyReports() {
     fetchReports();
   }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "approved":
-        return "#32D74B";
-      case "pending":
-        return "#FF9500";
-      case "in-progress":
-        return "#007AFF";
-      case "rejected":
-        return "#FF3B30";
-      default:
-        return "#8E8E93";
-    }
+  const STATUS_COLORS = {
+    "Submitted": "#32D74B",
+    "Under Review": "#FF9500",
+    "In Progress": "#007AFF",
+    "Action Taken": "#007AFF",
+    "Resolved": "#32D74B",
+    "Rejected": "#FF3B30", // optional if your backend has rejected
+  };
+  const STATUS_ICONS = {
+    "Submitted": <CheckCircle size={16} color="#32D74B" />,
+    "Under Review": <Clock size={16} color="#FF9500" />,
+    "In Progress": <AlertTriangle size={16} color="#007AFF" />,
+    "Action Taken": <AlertTriangle size={16} color="#007AFF" />,
+    "Resolved": <CheckCircle size={16} color="#32D74B" />,
+    "Rejected": <XCircle size={16} color="#FF3B30" />,
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle size={16} color="#32D74B" />;
-      case "pending":
-        return <Clock size={16} color="#FF9500" />;
-      case "in-progress":
-        return <AlertTriangle size={16} color="#007AFF" />;
-      case "rejected":
-        return <XCircle size={16} color="#FF3B30" />;
-      default:
-        return <Clock size={16} color="#8E8E93" />;
-    }
-  };
+  const getStatusColor = (status) => STATUS_COLORS[status] || "#8E8E93";
+  const getStatusIcon = (status) => STATUS_ICONS[status] || <Clock size={16} color="#8E8E93" />;
+
 
   const formatStatus = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -148,7 +139,7 @@ export default function MyReports() {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: `${getStatusColor(report.status)}20` },
+                    { backgroundColor: `${getStatusColor(report.status)}20` }, // light alpha background
                   ]}
                 >
                   {getStatusIcon(report.status)}

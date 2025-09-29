@@ -1,5 +1,6 @@
 // API Service for backend communication
-const BASE_URL = "http://172.20.10.9:3000/api";
+const BASE_URL = "http://172.20.10.4:3000/api";
+const FILE_BASE_URL = "http://172.20.10.4:3000"; // no /api
 
 class ApiService {
   // Get all reports
@@ -160,13 +161,24 @@ class ApiService {
 
   // Helper function to format report data for frontend
   static formatReportForFrontend(report) {
+    function normalizeStatus(status) {
+      switch (status?.toLowerCase()) {
+        case "submitted": return "Submitted";
+        case "under review": return "Under Review";
+        case "in progress": return "In Progress";
+        case "action taken": return "Action Taken";
+        case "resolved": return "Resolved";
+        default: return status;
+      }
+    }
+
     return {
       id: report._id,
       title:
         report.description.length > 50
           ? report.description.substring(0, 50) + "..."
           : report.description,
-      status: this.mapStatus(report.status),
+      status: normalizeStatus(report.status),   // ✅ fixed
       date: report.createdAt
         ? new Date(report.createdAt).toISOString().split("T")[0]
         : "",
@@ -174,11 +186,14 @@ class ApiService {
       location:
         report.location?.address ||
         `${report.location?.latitude}, ${report.location?.longitude}`,
+      evidence: report.evidence?.map(ev => ({
+        ...ev,
+        fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
+      })) || [], // ✅ only once
       description: report.description,
       fullName: report.full_name,
       nic: report.nic,
       contactNumber: report.contact_number,
-      evidence: report.evidence,
       latitude: report.location?.latitude,
       longitude: report.location?.longitude,
       createdAt: report.createdAt,

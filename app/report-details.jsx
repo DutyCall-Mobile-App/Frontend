@@ -62,53 +62,24 @@ export default function ReportDetails() {
 
   // Create timeline based on current status
   const createTimeline = (currentStatus, createdAt) => {
-    const baseTimeline = [
-      {
-        status: "submitted",
-        date: createdAt ? new Date(createdAt).toISOString().split("T")[0] : "",
-        time: createdAt ? new Date(createdAt).toLocaleTimeString() : "",
-        completed: true,
-      },
-      {
-        status: "reviewed",
+    const steps = ["Submitted", "Under Review", "In Progress", "Action Taken", "Resolved"];
+
+    return steps.map((status, index) => {
+      const completedIndex = steps.indexOf(currentStatus);
+
+      return {
+        status,
         date:
-          currentStatus !== "pending"
-            ? new Date().toISOString().split("T")[0]
-            : "",
-        time: currentStatus !== "pending" ? "02:15 PM" : "",
-        completed: currentStatus !== "pending",
-      },
-      {
-        status: "approved",
-        date:
-          currentStatus === "approved" || currentStatus === "in-progress"
+          index <= completedIndex
             ? new Date().toISOString().split("T")[0]
             : "",
         time:
-          currentStatus === "approved" || currentStatus === "in-progress"
-            ? "11:45 AM"
+          index <= completedIndex
+            ? new Date().toLocaleTimeString()
             : "",
-        completed:
-          currentStatus === "approved" || currentStatus === "in-progress",
-      },
-      {
-        status: "in-progress",
-        date:
-          currentStatus === "in-progress"
-            ? new Date().toISOString().split("T")[0]
-            : "",
-        time: currentStatus === "in-progress" ? "08:00 AM" : "",
-        completed: currentStatus === "in-progress",
-      },
-      {
-        status: "resolved",
-        date: "",
-        time: "",
-        completed: false,
-      },
-    ];
-
-    return baseTimeline;
+        completed: index <= completedIndex,
+      };
+    });
   };
 
   // Load report on component mount
@@ -155,18 +126,20 @@ export default function ReportDetails() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "submitted":
-      case "reviewed":
-      case "approved":
+      case "Submitted":
+      case "Under Review":
+      case "In Progress":
         return "#32D74B";
-      case "in-progress":
+      case "Action Taken":
         return "#007AFF";
-      case "resolved":
+      case "Resolved":
         return "#32D74B";
       default:
         return "#E5E5EA";
     }
   };
+
+  const FILE_BASE_URL = "http://172.20.10.4:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -259,11 +232,17 @@ export default function ReportDetails() {
                   showsHorizontalScrollIndicator={false}
                   renderItem={({ item }) => (
                     <View style={styles.evidenceContainer}>
-                      <Image
-                        source={{ uri: item.fileUrl }}
-                        style={styles.evidenceThumbnail}
-                        resizeMode="cover"
-                      />
+                    <Image
+                      source={{
+                        uri:
+                          item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
+                            ? item.fileUrl
+                            : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
+                      }}
+                      style={styles.evidenceThumbnail}
+                      resizeMode="cover"
+                    />
+
                       {item.fileType === "video" && (
                         <View style={styles.playIconOverlay}>
                           <Play size={16} color="#FFFFFF" />
