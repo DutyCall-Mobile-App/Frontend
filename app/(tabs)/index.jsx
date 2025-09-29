@@ -10,6 +10,8 @@ import {
   Siren,
   User,
 } from "lucide-react-native";
+import io from "socket.io-client";
+import axios from "axios";
 import { useEffect, useState } from "react";
 import {
   ScrollView,
@@ -47,26 +49,70 @@ export default function Dashboard() {
     });
   };
 
-  const notifications = [
-    {
-      id: 1,
-      message: "Your report #1023 has been approved by Police HQ",
-      time: "2 hours ago",
-      type: "success",
-    },
-    {
-      id: 2,
-      message: "Status update: Report #1078 now marked as Pending Review",
-      time: "5 hours ago",
-      type: "warning",
-    },
-    {
-      id: 3,
-      message: "Location confirmed for report #1059",
-      time: "1 day ago",
-      type: "info",
-    },
-  ];
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get("http://172.20.10.4:3000/api/notifications");
+      setNotifications(res.data.data);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  fetchNotifications();
+
+  // Socket.IO connection
+  const socket = io("http://172.20.10.4:3000");
+
+  socket.on("connect", () => {
+    console.log("Connected to Socket.IO server:", socket.id);
+  });
+
+  // Listen for real-time notifications
+  socket.on("notification", (data) => {
+    console.log("New notification received:", data);
+    setNotifications((prev) => [data, ...prev]); // prepend new notification
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, []);
+
+  // const notifications = [
+  //   {
+  //     id: 1,
+  //     message: "Your report #1023 has been approved by Police HQ",
+  //     time: "2 hours ago",
+  //     type: "success",
+  //   },
+  //   {
+  //     id: 2,
+  //     message: "Status update: Report #1078 now marked as Pending Review",
+  //     time: "5 hours ago",
+  //     type: "warning",
+  //   },
+  //   {
+  //     id: 3,
+  //     message: "Location confirmed for report #1059",
+  //     time: "1 day ago",
+  //     type: "info",
+  //   },
+  // ];
+
+  const markAsRead = async (id) => {
+  try {
+    const res = await axios.patch(`http://172.20.10.4:3000/api/notifications/${id}/read`);
+    setNotifications((prev) =>
+      prev.map((n) => (n._id === id ? res.data.data : n))
+    );
+  } catch (error) {
+    console.error("Error marking as read:", error);
+  }
+};
+
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -153,23 +199,34 @@ export default function Dashboard() {
         <View style={styles.notificationsSection}>
           <Text style={styles.sectionTitle}>Recent Notifications</Text>
           {notifications.map((notification) => (
-            <View
-              key={notification.id}
-              style={[
-                styles.notificationCard,
-                { backgroundColor: getNotificationColor(notification.type) },
-              ]}
+            <TouchableOpacity
+              key={notification._id} // <-- key stays on TouchableOpacity
+              onPress={() => markAsRead(notification._id)} // <-- your handler
             >
-              <View style={styles.notificationIcon}>
-                {getNotificationIcon(notification.type)}
+              <View
+                style={[
+                  styles.notificationCard,
+                  {
+                    backgroundColor:
+                      notification.type === "new_report" ? "#E3F2FD" : "#FFF4E6",
+                  },
+                ]}
+              >
+                <View style={styles.notificationIcon}>
+                  {notification.type === "new_report" ? (
+                    <MapPin size={16} color="#007AFF" />
+                  ) : (
+                    <CheckCircle size={16} color="#32D74B" />
+                  )}
+                </View>
+                <View style={styles.notificationContent}>
+                  <Text style={styles.notificationMessage}>{notification.message}</Text>
+                  <Text style={styles.notificationTime}>
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.notificationContent}>
-                <Text style={styles.notificationMessage}>
-                  {notification.message}
-                </Text>
-                <Text style={styles.notificationTime}>{notification.time}</Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>

@@ -1,5 +1,5 @@
 // Updated report-form.jsx (submit to backend with FormData for files)
-import { Audio } from "expo-av";
+import { Audio } from "expo-audio";
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
@@ -77,7 +77,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.9:3000/api/reports/create";
+  const API_URL = "http://172.20.10.4:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
