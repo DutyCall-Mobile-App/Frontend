@@ -34,6 +34,47 @@ export default function EmergencySOS() {
     getCurrentLocationAndFindPoliceStations();
   }, [getCurrentLocationAndFindPoliceStations]);
 
+  const getAddressFromCoordinates = async (latitude, longitude) => {
+    try {
+      // Try Google Reverse Geocoding API first for better address formatting
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_API_KEY}&result_type=street_address|route|premise|subpremise|neighborhood|locality|administrative_area_level_1|administrative_area_level_2|country`
+      );
+
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        // Try to get the most specific address first
+        let formattedAddress = data.results[0].formatted_address;
+        
+        // If the first result is too generic, try to find a more specific one
+        if (data.results.length > 1) {
+          for (let i = 0; i < data.results.length; i++) {
+            const result = data.results[i];
+            const types = result.types || [];
+            
+            // Prioritize street_address, route, or premise
+            if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+              formattedAddress = result.formatted_address;
+              break;
+            }
+          }
+        }
+        return formattedAddress;
+      } else {
+        // Fallback to Expo's reverse geocoding if Google API fails
+        const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const formattedAddress = address
+          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+          : "Current Location";
+        return formattedAddress;
+      }
+    } catch (error) {
+      console.error("Error getting address from coordinates:", error);
+      return "Location not available";
+    }
+  };
+
   const getCurrentLocationAndFindPoliceStations = useCallback(async () => {
     try {
       setLoading(true);
@@ -55,7 +96,10 @@ export default function EmergencySOS() {
       });
 
       const { latitude, longitude } = location.coords;
-      setCurrentLocation({ latitude, longitude });
+      
+      // Get readable address from coordinates
+      const address = await getAddressFromCoordinates(latitude, longitude);
+      setCurrentLocation({ latitude, longitude, address });
 
       // Find nearby police stations using Google Places API
       await findNearbyPoliceStations(latitude, longitude);
@@ -266,8 +310,7 @@ export default function EmergencySOS() {
             <View style={styles.locationInfo}>
               <MapPin size={20} color="#007AFF" />
               <Text style={styles.locationText}>
-                Your current location: {currentLocation.latitude.toFixed(6)},{" "}
-                {currentLocation.longitude.toFixed(6)}
+                Your current location: {currentLocation.address || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}
               </Text>
             </View>
           )}
