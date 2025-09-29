@@ -1,30 +1,41 @@
 // API Service for backend communication
-const BASE_URL = "http://172.20.10.9:3000/api";
+const BASE_URL = "http://192.168.1.5:3000/api";
 
 class ApiService {
   // Get all reports
   static async getAllReports() {
     try {
+      console.log('Attempting to fetch all reports from:', BASE_URL);
       const response = await fetch(`${BASE_URL}/reports`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          'Accept': 'application/json',
         },
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('Received data:', result);
 
       if (result.success) {
         return result.data;
       } else {
-        throw new Error(result.error || "Failed to fetch reports");
+        throw new Error(result.message || 'Failed to fetch reports');
       }
     } catch (error) {
-      console.error("Error fetching reports:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       throw error;
     }
   }
@@ -188,3 +199,33 @@ class ApiService {
 }
 
 export default ApiService;
+
+export async function loginUser(username, password) {
+  // Call citizen login API endpoint
+  // Example:
+  // return fetch('/api/auth/citizen-login', ...)
+}
+
+export async function loginPoliceman(policeId, password) {
+  // Call policeman login API endpoint
+  // Example:
+  // return fetch('/api/auth/policeman-login', ...)
+}
+
+export async function getNotifications() {
+  // Replace with your backend API endpoint
+  try {
+    const response = await fetch('https://your-backend-url/api/notifications');
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return { data: [] };
+  }
+}
+
+export async function logout() {
+  // Implement logout logic here, e.g., clearing tokens, notifying backend
+  console.log("User logged out");
+  return { success: true };
+}

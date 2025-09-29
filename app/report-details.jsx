@@ -35,12 +35,15 @@ export default function ReportDetails() {
   // Fetch report details from backend
   const fetchReportDetails = useCallback(async () => {
     try {
+      console.log("Attempting to fetch report:", reportId);
       setLoading(true);
       setError(null);
       const data = await ApiService.getReportById(reportId);
+      console.log("Received data:", data);
 
       // Format the report data
       const formattedReport = ApiService.formatReportForFrontend(data);
+      console.log("Formatted report:", formattedReport);
 
       // Create timeline based on status
       const timeline = createTimeline(
@@ -53,7 +56,10 @@ export default function ReportDetails() {
         timeline,
       });
     } catch (err) {
-      console.error("Error fetching report details:", err);
+      console.error("Network Error Details:", {
+        message: err.message,
+        stack: err.stack,
+      });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -113,10 +119,24 @@ export default function ReportDetails() {
 
   // Load report on component mount
   useEffect(() => {
-    if (reportId) {
-      fetchReportDetails();
-    }
-  }, [reportId, fetchReportDetails]);
+    const loadReports = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log("Starting to fetch report details");
+        await fetchReportDetails();
+      } catch (err) {
+        console.error("Failed to load report:", err);
+        setError(
+          "Failed to load report. Please check your connection and try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReports();
+  }, [fetchReportDetails]);
 
   const handleEdit = () => {
     router.push({
@@ -172,6 +192,25 @@ export default function ReportDetails() {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
   };
 
+  // Add a retry mechanism
+  const handleRetry = () => {
+    fetchReportDetails();
+  };
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={handleRetry}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -204,26 +243,6 @@ export default function ReportDetails() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading report details...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error: {error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={fetchReportDetails}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : !report ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Report not found</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.retryButtonText}>Go Back</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

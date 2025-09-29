@@ -17,6 +17,9 @@
         "NSLocationWhenInUseUsageDescription": "We need your location to show nearby places or use your current location for reporting.",
         "NSCameraUsageDescription": "We need access to your camera to take photos for evidence.",
         "NSPhotoLibraryUsageDescription": "We need access to your photo library to select images for evidence."
+      },
+      "nsAppTransportSecurity": {
+        "nsAllowsArbitraryLoads": true
       }
     },
     "android": {

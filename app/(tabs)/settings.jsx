@@ -1,3 +1,4 @@
+import { useNavigation } from "expo-router"; // Use expo-router navigation
 import {
   Bell,
   BookOpen,
@@ -18,6 +19,8 @@ import {
 } from "react-native";
 
 export default function Settings() {
+  const navigation = useNavigation();
+
   const settingsItems = [
     {
       icon: User,
@@ -30,6 +33,7 @@ export default function Settings() {
       icon: Bell,
       title: "Notification Settings",
       type: "normal",
+      onPress: () => navigation.navigate("notifications"), // lowercase, matches file name
     },
     {
       icon: Phone,
@@ -85,7 +89,11 @@ export default function Settings() {
     }
 
     return (
-      <TouchableOpacity key={index} style={styles.settingItem}>
+      <TouchableOpacity
+        key={index}
+        style={styles.settingItem}
+        onPress={item.onPress}
+      >
         <View style={styles.settingIconContainer}>
           <item.icon size={20} color="#007AFF" />
         </View>

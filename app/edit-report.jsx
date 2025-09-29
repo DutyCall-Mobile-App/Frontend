@@ -16,6 +16,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,7 +24,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+
+// Conditionally import react-native-maps for non-web platforms
+let MapView, Marker;
+
+if (Platform.OS !== "web") {
+  MapView = require("react-native-maps").default;
+  Marker = require("react-native-maps").Marker;
+}
+
 import ApiService from "../services/apiService";
 
 export default function EditReport() {
@@ -499,7 +508,7 @@ export default function EditReport() {
                   <X size={20} color="#FF3B30" />
                 </TouchableOpacity>
               </View>
-              {showMap && (
+              {showMap && Platform.OS !== "web" && MapView && (
                 <MapView
                   style={styles.map}
                   initialRegion={{
@@ -511,6 +520,13 @@ export default function EditReport() {
                 >
                   <Marker coordinate={location} />
                 </MapView>
+              )}
+              {showMap && Platform.OS === "web" && (
+                <View style={styles.mapFallback}>
+                  <Text style={styles.mapFallbackText}>
+                    Map not available on web. Location: {location.address}
+                  </Text>
+                </View>
               )}
             </>
           ) : (
@@ -982,3 +998,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+const mapFallbackStyles = StyleSheet.create({
+  mapFallback: {
+    height: 200,
+    borderRadius: 8,
+    marginTop: 10,
+    backgroundColor: "#E5E5EA",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  mapFallbackText: {
+    color: "#8E8E93",
+    textAlign: "center",
+    fontSize: 16,
+  },
+});
+
+Object.assign(styles, mapFallbackStyles);
