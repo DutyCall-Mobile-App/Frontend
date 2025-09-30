@@ -139,7 +139,7 @@ export default function ReportDetails() {
     }
   };
 
-  const FILE_BASE_URL = "http://172.20.10.4:3000"; // same as  API server
+  const FILE_BASE_URL = "http://172.20.10.9:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
