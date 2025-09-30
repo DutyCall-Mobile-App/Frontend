@@ -1,5 +1,6 @@
+import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { router as rootRouter, useRouter } from "expo-router";
 import {
   CircleAlert as AlertCircle,
   Bell,
@@ -10,16 +11,17 @@ import {
   Siren,
   User,
 } from "lucide-react-native";
-import io from "socket.io-client";
-import axios from "axios";
 import { useEffect, useState } from "react";
 import {
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import io from "socket.io-client";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -50,11 +52,12 @@ export default function Dashboard() {
   };
 
   const [notifications, setNotifications] = useState([]);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   useEffect(() => {
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("http://172.20.10.4:3000/api/notifications");
+      const res = await axios.get("http://172.20.10.9:3000/api/notifications");
       setNotifications(res.data.data);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -64,7 +67,7 @@ export default function Dashboard() {
   fetchNotifications();
 
   // Socket.IO connection
-  const socket = io("http://172.20.10.4:3000");
+  const socket = io("http://172.20.10.9:3000");
 
   socket.on("connect", () => {
     console.log("Connected to Socket.IO server:", socket.id);
@@ -104,7 +107,7 @@ export default function Dashboard() {
 
   const markAsRead = async (id) => {
   try {
-    const res = await axios.patch(`http://172.20.10.4:3000/api/notifications/${id}/read`);
+    const res = await axios.patch(`http://172.20.10.9:3000/api/notifications/${id}/read`);
     setNotifications((prev) =>
       prev.map((n) => (n._id === id ? res.data.data : n))
     );
@@ -112,6 +115,35 @@ export default function Dashboard() {
     console.error("Error marking as read:", error);
   }
 };
+
+  const handleProfilePress = () => {
+    setShowProfileDropdown(!showProfileDropdown);
+  };
+
+  const handleProfileOption = (option) => {
+    setShowProfileDropdown(false);
+    if (option === "profile") {
+      // Navigate to profile page
+      router.push("/profile-settings");
+    } else if (option === "logout") {
+      Alert.alert(
+        "Logout",
+        "Are you sure you want to logout?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Logout",
+            style: "destructive",
+            onPress: async () => {
+              // Clear any stored data and navigate to login
+              // Use root router to navigate to login page
+              rootRouter.replace("/");
+            },
+          },
+        ]
+      );
+    }
+  };
 
 
   const getNotificationIcon = (type) => {
@@ -154,15 +186,42 @@ export default function Dashboard() {
   return (
     <View style={styles.container}>
       <DutyCallBackground />
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.contentContainer}
+      <TouchableOpacity 
+        style={styles.overlay} 
+        activeOpacity={1} 
+        onPress={() => setShowProfileDropdown(false)}
       >
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.contentContainer}
+        >
         <View style={styles.header}>
-          <Text style={styles.logo}>Logo</Text>
-          <TouchableOpacity style={styles.profileButton}>
-            <User size={24} color="#007AFF" />
-          </TouchableOpacity>
+          <Image
+            source={require("../../assets/images/logo-dash.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View style={styles.profileContainer}>
+            <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
+              <User size={24} color="#007AFF" />
+            </TouchableOpacity>
+            {showProfileDropdown && (
+              <View style={styles.profileDropdown}>
+                <TouchableOpacity 
+                  style={styles.dropdownItem} 
+                  onPress={() => handleProfileOption("profile")}
+                >
+                  <Text style={styles.dropdownText}>Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.dropdownItem} 
+                  onPress={() => handleProfileOption("logout")}
+                >
+                  <Text style={[styles.dropdownText, styles.logoutText]}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
         <LinearGradient
@@ -229,7 +288,8 @@ export default function Dashboard() {
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -238,6 +298,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F2F2F7",
+  },
+  overlay: {
+    flex: 1,
   },
   dutyCallBackground: {
     position: "absolute",
@@ -275,9 +338,11 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   logo: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000000",
+    width: 50,
+    height: 0,
+  },
+  profileContainer: {
+    position: "relative",
   },
   profileButton: {
     width: 36,
@@ -291,6 +356,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  profileDropdown: {
+    position: "absolute",
+    top: 45,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    minWidth: 120,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  dropdownText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#1a1a2e",
+  },
+  logoutText: {
+    color: "#FF3B30",
   },
   dateTimeCard: {
     marginHorizontal: 20,

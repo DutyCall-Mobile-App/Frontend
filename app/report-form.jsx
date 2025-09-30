@@ -1,5 +1,5 @@
 // Updated report-form.jsx (submit to backend with FormData for files)
-import { Audio } from "expo-audio";
+import { Audio } from "expo-av"; // Change back to expo-av for now
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
@@ -7,27 +7,27 @@ import * as Location from "expo-location";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    Camera,
-    ChevronLeft,
-    Image as ImageIcon,
-    MapPin,
-    Mic,
-    Play,
-    Users,
-    X,
+  Camera,
+  ChevronLeft,
+  Image as ImageIcon,
+  MapPin,
+  Mic,
+  Play,
+  Users,
+  X,
 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
@@ -77,7 +77,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.4:3000/api/reports/create";
+  const API_URL = "http://172.20.10.9:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
@@ -275,7 +275,7 @@ export default function ReportForm() {
     try {
       setSpeechError("🔄 Converting audio to text...");
 
-      // Use legacy FileSystem API for reliable functionality
+      // Check if file exists using legacy API
       const fileInfo = await FileSystem.getInfoAsync(uri);
       if (!fileInfo.exists) {
         throw new Error("Audio file not found");
@@ -283,6 +283,7 @@ export default function ReportForm() {
 
       console.log("Audio file size:", fileInfo.size, "bytes");
 
+      // Use the legacy API to read as base64
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -485,15 +486,19 @@ export default function ReportForm() {
       if (data.results && data.results.length > 0) {
         // Try to get the most specific address first
         let formattedAddress = data.results[0].formatted_address;
-        
+
         // If the first result is too generic, try to find a more specific one
         if (data.results.length > 1) {
           for (let i = 0; i < data.results.length; i++) {
             const result = data.results[i];
             const types = result.types || [];
-            
+
             // Prioritize street_address, route, or premise
-            if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+            if (
+              types.includes("street_address") ||
+              types.includes("route") ||
+              types.includes("premise")
+            ) {
               formattedAddress = result.formatted_address;
               break;
             }
@@ -513,7 +518,16 @@ export default function ReportForm() {
         // Fallback to Expo's reverse geocoding if Google API fails
         const [address] = await Location.reverseGeocodeAsync(coords);
         const formattedAddress = address
-          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+          ? `${address.street || ""}${address.street ? ", " : ""}${
+              address.district || ""
+            }${address.district ? ", " : ""}${address.city || ""}${
+              address.city ? ", " : ""
+            }${address.region || ""}${address.region ? ", " : ""}${
+              address.postalCode || ""
+            }${address.postalCode ? ", " : ""}${address.country || ""}`.replace(
+              /,\s*$/,
+              ""
+            )
           : "Current Location";
 
         setLocation({
@@ -836,22 +850,26 @@ export default function ReportForm() {
                     const response = await fetch(
                       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}&result_type=street_address|route|premise|subpremise|neighborhood|locality|administrative_area_level_1|administrative_area_level_2|country`
                     );
-                    
+
                     const data = await response.json();
                     let formattedAddress = "Selected Location";
-                    
+
                     if (data.results && data.results.length > 0) {
                       // Try to get the most specific address first
                       formattedAddress = data.results[0].formatted_address;
-                      
+
                       // If the first result is too generic, try to find a more specific one
                       if (data.results.length > 1) {
                         for (let i = 0; i < data.results.length; i++) {
                           const result = data.results[i];
                           const types = result.types || [];
-                          
+
                           // Prioritize street_address, route, or premise
-                          if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+                          if (
+                            types.includes("street_address") ||
+                            types.includes("route") ||
+                            types.includes("premise")
+                          ) {
                             formattedAddress = result.formatted_address;
                             break;
                           }
@@ -859,12 +877,24 @@ export default function ReportForm() {
                       }
                     } else {
                       // Fallback to Expo's reverse geocoding
-                      const [address] = await Location.reverseGeocodeAsync(coords);
+                      const [address] = await Location.reverseGeocodeAsync(
+                        coords
+                      );
                       formattedAddress = address
-                        ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+                        ? `${address.street || ""}${
+                            address.street ? ", " : ""
+                          }${address.district || ""}${
+                            address.district ? ", " : ""
+                          }${address.city || ""}${address.city ? ", " : ""}${
+                            address.region || ""
+                          }${address.region ? ", " : ""}${
+                            address.postalCode || ""
+                          }${address.postalCode ? ", " : ""}${
+                            address.country || ""
+                          }`.replace(/,\s*$/, "")
                         : "Selected Location";
                     }
-                    
+
                     setLocation((prev) => ({
                       ...prev,
                       address: formattedAddress,
