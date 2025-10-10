@@ -6,58 +6,88 @@ import {
   Clock,
   CreditCard as Edit,
   MapPin,
+  Play,
   Trash2,
 } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  FlatList,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import ApiService from "../services/apiService";
 
 export default function ReportDetails() {
   const router = useRouter();
   const { reportId } = useLocalSearchParams();
 
-  const report = {
-    id: reportId,
-    title: "Broken streetlights in public areas",
-    status: "approved",
-    date: "2024-01-15",
-    category: "Infrastructure & Road Safety",
-    location: "Main Street, Downtown",
-    description:
-      "Several streetlights are not working on Main Street between 5th and 7th Avenue. This creates a safety hazard for pedestrians and drivers during nighttime hours.",
-    timeline: [
-      {
-        status: "submitted",
-        date: "2024-01-15",
-        time: "09:30 AM",
-        completed: true,
-      },
-      {
-        status: "reviewed",
-        date: "2024-01-16",
-        time: "02:15 PM",
-        completed: true,
-      },
-      {
-        status: "approved",
-        date: "2024-01-17",
-        time: "11:45 AM",
-        completed: true,
-      },
-      {
-        status: "in-progress",
-        date: "2024-01-18",
-        time: "08:00 AM",
-        completed: false,
-      },
-      { status: "resolved", date: "", time: "", completed: false },
-    ],
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Fetch report details from backend
+  const fetchReportDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ApiService.getReportById(reportId);
+
+      // Format the report data
+      const formattedReport = ApiService.formatReportForFrontend(data);
+
+      // Create timeline based on status
+      const timeline = createTimeline(
+        formattedReport.status,
+        formattedReport.createdAt
+      );
+
+      setReport({
+        ...formattedReport,
+        timeline,
+      });
+    } catch (err) {
+      console.error("Error fetching report details:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [reportId]);
+
+  // Create timeline based on current status
+  const createTimeline = (currentStatus, createdAt) => {
+    const steps = ["Submitted", "Under Review", "In Progress", "Action Taken", "Resolved"];
+
+    return steps.map((status, index) => {
+      const completedIndex = steps.indexOf(currentStatus);
+
+      return {
+        status,
+        date:
+          index <= completedIndex
+            ? new Date().toISOString().split("T")[0]
+            : "",
+        time:
+          index <= completedIndex
+            ? new Date().toLocaleTimeString()
+            : "",
+        completed: index <= completedIndex,
+      };
+    });
   };
+
+  // Load report on component mount
+  useEffect(() => {
+    if (reportId) {
+      fetchReportDetails();
+    }
+  }, [reportId, fetchReportDetails]);
 
   const handleEdit = () => {
     router.push({
@@ -75,9 +105,19 @@ export default function ReportDetails() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            // Handle delete logic here
-            router.back();
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await ApiService.deleteReport(reportId);
+              Alert.alert("Success", "Report deleted successfully", [
+                { text: "OK", onPress: () => router.back() },
+              ]);
+            } catch (err) {
+              console.error("Error deleting report:", err);
+              Alert.alert("Error", `Failed to delete report: ${err.message}`);
+            } finally {
+              setDeleting(false);
+            }
           },
         },
       ]
@@ -86,18 +126,20 @@ export default function ReportDetails() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "submitted":
-      case "reviewed":
-      case "approved":
+      case "Submitted":
+      case "Under Review":
+      case "In Progress":
         return "#32D74B";
-      case "in-progress":
+      case "Action Taken":
         return "#007AFF";
-      case "resolved":
+      case "Resolved":
         return "#32D74B";
       default:
         return "#E5E5EA";
     }
   };
+
+  const FILE_BASE_URL = "http://172.20.10.9:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -117,89 +159,158 @@ export default function ReportDetails() {
           <TouchableOpacity onPress={handleEdit} style={styles.actionButton}>
             <Edit size={20} color="#007AFF" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
-            <Trash2 size={20} color="#FF3B30" />
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={[styles.actionButton, deleting && styles.disabledButton]}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator size={20} color="#FF3B30" />
+            ) : (
+              <Trash2 size={20} color="#FF3B30" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.reportCard}>
-          <Text style={styles.reportId}>#{report.id}</Text>
-          <Text style={styles.reportTitle}>{report.title}</Text>
-          <Text style={styles.reportCategory}>{report.category}</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading report details...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={fetchReportDetails}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : !report ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Report not found</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.reportCard}>
+            <Text style={styles.reportId}>#{report.id}</Text>
+            <Text style={styles.reportTitle}>{report.title}</Text>
+            <Text style={styles.reportCategory}>{report.category}</Text>
 
-          <View style={styles.metaInfo}>
-            <View style={styles.metaItem}>
-              <MapPin size={16} color="#8E8E93" />
-              <Text style={styles.metaText}>{report.location}</Text>
+            <View style={styles.metaInfo}>
+              <View style={styles.metaItem}>
+                <MapPin size={16} color="#8E8E93" />
+                <Text style={styles.metaText}>{report.location}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Calendar size={16} color="#8E8E93" />
+                <Text style={styles.metaText}>
+                  {new Date(report.date).toLocaleDateString()}
+                </Text>
+              </View>
             </View>
-            <View style={styles.metaItem}>
-              <Calendar size={16} color="#8E8E93" />
-              <Text style={styles.metaText}>
-                {new Date(report.date).toLocaleDateString()}
-              </Text>
-            </View>
+
+            <Text style={styles.description}>{report.description}</Text>
+
+            {/* Evidence Section */}
+            {report.evidence && report.evidence.length > 0 && (
+              <View style={styles.evidenceSection}>
+                <Text style={styles.evidenceTitle}>Evidence</Text>
+                <FlatList
+                  data={report.evidence}
+                  horizontal
+                  keyExtractor={(item, index) => index.toString()}
+                  style={styles.evidenceList}
+                  showsHorizontalScrollIndicator={false}
+                  renderItem={({ item }) => (
+                    <View style={styles.evidenceContainer}>
+                    <Image
+                      source={{
+                        uri:
+                          item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
+                            ? item.fileUrl
+                            : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
+                      }}
+                      style={styles.evidenceThumbnail}
+                      resizeMode="cover"
+                    />
+
+                      {item.fileType === "video" && (
+                        <View style={styles.playIconOverlay}>
+                          <Play size={16} color="#FFFFFF" />
+                        </View>
+                      )}
+                    </View>
+                  )}
+                />
+              </View>
+            )}
           </View>
 
-          <Text style={styles.description}>{report.description}</Text>
-        </View>
+          <View style={styles.timelineCard}>
+            <Text style={styles.timelineTitle}>Status Timeline</Text>
 
-        <View style={styles.timelineCard}>
-          <Text style={styles.timelineTitle}>Status Timeline</Text>
-
-          {report.timeline.map((item, index) => (
-            <View key={index} style={styles.timelineItem}>
-              <View style={styles.timelineLeft}>
-                <View
-                  style={[
-                    styles.timelineIndicator,
-                    {
-                      backgroundColor: item.completed
-                        ? getStatusColor(item.status)
-                        : "#E5E5EA",
-                    },
-                  ]}
-                >
-                  {item.completed ? (
-                    <CheckCircle size={12} color="#FFFFFF" />
-                  ) : (
-                    <Clock size={12} color="#8E8E93" />
-                  )}
-                </View>
-                {index < report.timeline.length - 1 && (
+            {report.timeline.map((item, index) => (
+              <View key={index} style={styles.timelineItem}>
+                <View style={styles.timelineLeft}>
                   <View
                     style={[
-                      styles.timelineLine,
+                      styles.timelineIndicator,
                       {
                         backgroundColor: item.completed
                           ? getStatusColor(item.status)
                           : "#E5E5EA",
                       },
                     ]}
-                  />
-                )}
-              </View>
+                  >
+                    {item.completed ? (
+                      <CheckCircle size={12} color="#FFFFFF" />
+                    ) : (
+                      <Clock size={12} color="#8E8E93" />
+                    )}
+                  </View>
+                  {index < report.timeline.length - 1 && (
+                    <View
+                      style={[
+                        styles.timelineLine,
+                        {
+                          backgroundColor: item.completed
+                            ? getStatusColor(item.status)
+                            : "#E5E5EA",
+                        },
+                      ]}
+                    />
+                  )}
+                </View>
 
-              <View style={styles.timelineRight}>
-                <Text
-                  style={[
-                    styles.timelineStatus,
-                    { color: item.completed ? "#000000" : "#8E8E93" },
-                  ]}
-                >
-                  {formatStatusTitle(item.status)}
-                </Text>
-                {item.date && (
-                  <Text style={styles.timelineDate}>
-                    {new Date(item.date).toLocaleDateString()} at {item.time}
+                <View style={styles.timelineRight}>
+                  <Text
+                    style={[
+                      styles.timelineStatus,
+                      { color: item.completed ? "#000000" : "#8E8E93" },
+                    ]}
+                  >
+                    {formatStatusTitle(item.status)}
                   </Text>
-                )}
+                  {item.date && (
+                    <Text style={styles.timelineDate}>
+                      {new Date(item.date).toLocaleDateString()} at {item.time}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+            ))}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -335,5 +446,81 @@ const styles = StyleSheet.create({
   timelineDate: {
     fontSize: 14,
     color: "#8E8E93",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 100,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#8E8E93",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 100,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#FF3B30",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  evidenceSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#F2F2F7",
+    paddingTop: 16,
+    marginTop: 16,
+  },
+  evidenceTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 12,
+  },
+  evidenceList: {
+    marginTop: 8,
+  },
+  evidenceContainer: {
+    position: "relative",
+    marginRight: 12,
+  },
+  evidenceThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  playIconOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -12 }, { translateY: -12 }],
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -6,81 +6,77 @@ import {
   Clock,
   Circle as XCircle,
 } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
-const reports = [
-  {
-    id: "1023",
-    title: "Broken streetlights in public areas",
-    status: "approved",
-    date: "2024-01-15",
-    category: "Infrastructure & Road Safety",
-    location: "Main Street, Downtown",
-  },
-  {
-    id: "1078",
-    title: "Suspicious activity / persons",
-    status: "pending",
-    date: "2024-01-12",
-    category: "Public Safety & Security",
-    location: "Park Avenue",
-  },
-  {
-    id: "1059",
-    title: "Illegal dumping / garbage accumulation",
-    status: "in-progress",
-    date: "2024-01-10",
-    category: "Environmental Concerns",
-    location: "5th Avenue",
-  },
-  {
-    id: "1045",
-    title: "Potholes or road hazards",
-    status: "rejected",
-    date: "2024-01-08",
-    category: "Infrastructure & Road Safety",
-    location: "Highway 101",
-  },
-];
+import ApiService from "../services/apiService";
 
 export default function MyReports() {
   const router = useRouter();
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "approved":
-        return "#32D74B";
-      case "pending":
-        return "#FF9500";
-      case "in-progress":
-        return "#007AFF";
-      case "rejected":
-        return "#FF3B30";
-      default:
-        return "#8E8E93";
+  // Fetch reports from backend
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ApiService.getAllReports();
+
+      // Format the data for frontend use
+      const formattedReports = data.map((report) =>
+        ApiService.formatReportForFrontend(report)
+      );
+      setReports(formattedReports);
+    } catch (err) {
+      console.error("Error fetching reports:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle size={16} color="#32D74B" />;
-      case "pending":
-        return <Clock size={16} color="#FF9500" />;
-      case "in-progress":
-        return <AlertTriangle size={16} color="#007AFF" />;
-      case "rejected":
-        return <XCircle size={16} color="#FF3B30" />;
-      default:
-        return <Clock size={16} color="#8E8E93" />;
-    }
+  // Refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchReports();
+    setRefreshing(false);
   };
+
+  // Load reports on component mount
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const STATUS_COLORS = {
+    "Submitted": "#32D74B",
+    "Under Review": "#FF9500",
+    "In Progress": "#007AFF",
+    "Action Taken": "#007AFF",
+    "Resolved": "#32D74B",
+    "Rejected": "#FF3B30", // optional if your backend has rejected
+  };
+  const STATUS_ICONS = {
+    "Submitted": <CheckCircle size={16} color="#32D74B" />,
+    "Under Review": <Clock size={16} color="#FF9500" />,
+    "In Progress": <AlertTriangle size={16} color="#007AFF" />,
+    "Action Taken": <AlertTriangle size={16} color="#007AFF" />,
+    "Resolved": <CheckCircle size={16} color="#32D74B" />,
+    "Rejected": <XCircle size={16} color="#FF3B30" />,
+  };
+
+  const getStatusColor = (status) => STATUS_COLORS[status] || "#8E8E93";
+  const getStatusIcon = (status) => STATUS_ICONS[status] || <Clock size={16} color="#8E8E93" />;
+
 
   const formatStatus = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -105,44 +101,71 @@ export default function MyReports() {
         <Text style={styles.title}>My Reports</Text>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {reports.map((report) => (
-          <TouchableOpacity
-            key={report.id}
-            style={styles.reportCard}
-            onPress={() => handleReportPress(report.id)}
-          >
-            <View style={styles.reportHeader}>
-              <Text style={styles.reportId}>#{report.id}</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: `${getStatusColor(report.status)}20` },
-                ]}
-              >
-                {getStatusIcon(report.status)}
-                <Text
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Loading reports...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchReports}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : reports.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No reports found</Text>
+            <Text style={styles.emptySubtext}>
+              Your submitted reports will appear here
+            </Text>
+          </View>
+        ) : (
+          reports.map((report) => (
+            <TouchableOpacity
+              key={report.id}
+              style={styles.reportCard}
+              onPress={() => handleReportPress(report.id)}
+            >
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportId}>#{report.id.slice(-4)}</Text>
+                <View
                   style={[
-                    styles.statusText,
-                    { color: getStatusColor(report.status) },
+                    styles.statusBadge,
+                    { backgroundColor: `${getStatusColor(report.status)}20` }, // light alpha background
                   ]}
                 >
-                  {formatStatus(report.status)}
+                  {getStatusIcon(report.status)}
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: getStatusColor(report.status) },
+                    ]}
+                  >
+                    {formatStatus(report.status)}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.reportTitle}>{report.title}</Text>
+              <Text style={styles.reportCategory}>{report.category}</Text>
+              <Text style={styles.reportLocation}>{report.location}</Text>
+
+              <View style={styles.reportFooter}>
+                <Text style={styles.reportDate}>
+                  {new Date(report.date).toLocaleDateString()}
                 </Text>
               </View>
-            </View>
-
-            <Text style={styles.reportTitle}>{report.title}</Text>
-            <Text style={styles.reportCategory}>{report.category}</Text>
-            <Text style={styles.reportLocation}>{report.location}</Text>
-
-            <View style={styles.reportFooter}>
-              <Text style={styles.reportDate}>
-                {new Date(report.date).toLocaleDateString()}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -233,5 +256,58 @@ const styles = StyleSheet.create({
   reportDate: {
     fontSize: 12,
     color: "#8E8E93",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#8E8E93",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#FF3B30",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#8E8E93",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: "center",
   },
 });

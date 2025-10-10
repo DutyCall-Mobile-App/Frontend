@@ -1,3 +1,4 @@
+// Updated add-report.jsx (pass categoryTitle to report-form)
 import { useRouter } from "expo-router";
 import {
   ChevronRight,
@@ -96,12 +97,13 @@ export default function AddReport() {
       )
     : [];
 
-  const handleCategorySelect = (categoryId, subcategory) => {
+  const handleCategorySelect = (categoryId, subcategory, categoryTitle) => {
     router.push({
       pathname: "/report-form",
       params: {
         categoryId,
         subcategory: subcategory || "",
+        categoryTitle,
       },
     });
   };
@@ -145,7 +147,9 @@ export default function AddReport() {
               <TouchableOpacity
                 key={index}
                 style={styles.subcategoryItem}
-                onPress={() => handleCategorySelect(category.id, subcategory)}
+                onPress={() =>
+                  handleCategorySelect(category.id, subcategory, category.title)
+                }
               >
                 <Text style={styles.subcategoryText}>{subcategory}</Text>
                 <ChevronRight size={16} color="#C7C7CC" />
