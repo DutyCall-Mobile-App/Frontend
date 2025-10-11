@@ -1,6 +1,6 @@
 // API Service for backend communication
-const BASE_URL = "http://172.20.10.9:3000/api";
-const FILE_BASE_URL = "http://172.20.10.9:3000"; // no /api
+const { API_BASE: BASE_URL, FILE_BASE: FILE_BASE_URL } =
+  require("../app/utils/config").default;
 
 class ApiService {
   // Get all reports
@@ -163,12 +163,18 @@ class ApiService {
   static formatReportForFrontend(report) {
     function normalizeStatus(status) {
       switch (status?.toLowerCase()) {
-        case "submitted": return "Submitted";
-        case "under review": return "Under Review";
-        case "in progress": return "In Progress";
-        case "action taken": return "Action Taken";
-        case "resolved": return "Resolved";
-        default: return status;
+        case "submitted":
+          return "Submitted";
+        case "under review":
+          return "Under Review";
+        case "in progress":
+          return "In Progress";
+        case "action taken":
+          return "Action Taken";
+        case "resolved":
+          return "Resolved";
+        default:
+          return status;
       }
     }
 
@@ -178,7 +184,7 @@ class ApiService {
         report.description.length > 50
           ? report.description.substring(0, 50) + "..."
           : report.description,
-      status: normalizeStatus(report.status),   // ✅ fixed
+      status: normalizeStatus(report.status), // ✅ fixed
       date: report.createdAt
         ? new Date(report.createdAt).toISOString().split("T")[0]
         : "",
@@ -186,10 +192,11 @@ class ApiService {
       location:
         report.location?.address ||
         `${report.location?.latitude}, ${report.location?.longitude}`,
-      evidence: report.evidence?.map(ev => ({
-        ...ev,
-        fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
-      })) || [], // ✅ only once
+      evidence:
+        report.evidence?.map((ev) => ({
+          ...ev,
+          fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
+        })) || [], // ✅ only once
       description: report.description,
       fullName: report.full_name,
       nic: report.nic,

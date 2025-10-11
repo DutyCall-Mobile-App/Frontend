@@ -1,6 +1,8 @@
-// import axios from "axios";
+// (top commented imports left in place)
 // import { LinearGradient } from "expo-linear-gradient";
 // import { router as rootRouter, useRouter } from "expo-router";
+// import axios from 'axios';
+// import { API_BASE } from '../utils/config';
 // import {
 //   CircleAlert as AlertCircle,
 //   Bell,
@@ -145,7 +147,6 @@
 //     }
 //   };
 
-
 //   const getNotificationIcon = (type) => {
 //     switch (type) {
 //       case "success":
@@ -186,9 +187,9 @@
 //   return (
 //     <View style={styles.container}>
 //       <DutyCallBackground />
-//       <TouchableOpacity 
-//         style={styles.overlay} 
-//         activeOpacity={1} 
+//       <TouchableOpacity
+//         style={styles.overlay}
+//         activeOpacity={1}
 //         onPress={() => setShowProfileDropdown(false)}
 //       >
 //         <ScrollView
@@ -207,14 +208,14 @@
 //             </TouchableOpacity>
 //             {showProfileDropdown && (
 //               <View style={styles.profileDropdown}>
-//                 <TouchableOpacity 
-//                   style={styles.dropdownItem} 
+//                 <TouchableOpacity
+//                   style={styles.dropdownItem}
 //                   onPress={() => handleProfileOption("profile")}
 //                 >
 //                   <Text style={styles.dropdownText}>Profile</Text>
 //                 </TouchableOpacity>
-//                 <TouchableOpacity 
-//                   style={styles.dropdownItem} 
+//                 <TouchableOpacity
+//                   style={styles.dropdownItem}
 //                   onPress={() => handleProfileOption("logout")}
 //                 >
 //                   <Text style={[styles.dropdownText, styles.logoutText]}>Logout</Text>
@@ -528,7 +529,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import io from "socket.io-client";
+import { io } from "socket.io-client";
+import { API_BASE } from "../utils/config";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -564,7 +566,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await axios.get("http://172.20.10.9:3000/api/notifications");
+        const res = await axios.get(`${API_BASE}/notifications`);
         setNotifications(res.data.data);
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -573,8 +575,8 @@ export default function Dashboard() {
 
     fetchNotifications();
 
-    // Socket.IO connection
-    const socket = io("http://172.20.10.9:3000");
+    // Socket.IO connection (connect to host without /api)
+    const socket = io(API_BASE.replace(/\/api\/?$/, ""));
 
     socket.on("connect", () => {
       console.log("Connected to Socket.IO server:", socket.id);
@@ -593,7 +595,7 @@ export default function Dashboard() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await axios.patch(`http://172.20.10.9:3000/api/notifications/${id}/read`);
+      const res = await axios.patch(`${API_BASE}/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? res.data.data : n))
       );
@@ -612,25 +614,21 @@ export default function Dashboard() {
       // Navigate to user profile screen
       router.push("/user-profile");
     } else if (option === "logout") {
-      Alert.alert(
-        "Logout",
-        "Are you sure you want to logout?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Logout",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                // Clear stored auth and go to login
-                await AsyncStorage.multiRemove(["token", "role"]);
-              } finally {
-                rootRouter.replace("/login");
-              }
-            },
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Clear stored auth and go to login
+              await AsyncStorage.multiRemove(["token", "role"]);
+            } finally {
+              rootRouter.replace("/login");
+            }
           },
-        ]
-      );
+        },
+      ]);
     }
   };
 
@@ -690,7 +688,10 @@ export default function Dashboard() {
               resizeMode="contain"
             />
             <View style={styles.profileContainer}>
-              <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={handleProfilePress}
+              >
                 <User size={24} color="#007AFF" />
               </TouchableOpacity>
               {showProfileDropdown && (
@@ -705,14 +706,19 @@ export default function Dashboard() {
                     style={styles.dropdownItem}
                     onPress={() => handleProfileOption("logout")}
                   >
-                    <Text style={[styles.dropdownText, styles.logoutText]}>Logout</Text>
+                    <Text style={[styles.dropdownText, styles.logoutText]}>
+                      Logout
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
           </View>
 
-          <LinearGradient colors={["#007AFF", "#5AC8FA"]} style={styles.dateTimeCard}>
+          <LinearGradient
+            colors={["#007AFF", "#5AC8FA"]}
+            style={styles.dateTimeCard}
+          >
             <View style={styles.dateTimeContent}>
               <Text style={styles.date}>{formatDate(currentDateTime)}</Text>
               <Text style={styles.time}>{formatTime(currentDateTime)}</Text>
@@ -740,7 +746,10 @@ export default function Dashboard() {
             <Bell size={20} color="#007AFF" />
           </TouchableOpacity>
 
-          <View className="notificationsSection" style={styles.notificationsSection}>
+          <View
+            className="notificationsSection"
+            style={styles.notificationsSection}
+          >
             <Text style={styles.sectionTitle}>Recent Notifications</Text>
             {notifications.map((notification) => (
               <TouchableOpacity
@@ -752,7 +761,9 @@ export default function Dashboard() {
                     styles.notificationCard,
                     {
                       backgroundColor:
-                        notification.type === "new_report" ? "#E3F2FD" : "#FFF4E6",
+                        notification.type === "new_report"
+                          ? "#E3F2FD"
+                          : "#FFF4E6",
                     },
                   ]}
                 >
@@ -764,7 +775,9 @@ export default function Dashboard() {
                     )}
                   </View>
                   <View style={styles.notificationContent}>
-                    <Text style={styles.notificationMessage}>{notification.message}</Text>
+                    <Text style={styles.notificationMessage}>
+                      {notification.message}
+                    </Text>
                     <Text style={styles.notificationTime}>
                       {new Date(notification.createdAt).toLocaleString()}
                     </Text>
@@ -784,7 +797,10 @@ const styles = StyleSheet.create({
   overlay: { flex: 1 },
   dutyCallBackground: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 0,
     flexDirection: "column",
     justifyContent: "space-around",
@@ -812,49 +828,134 @@ const styles = StyleSheet.create({
   logo: { width: 50, height: 0 },
   profileContainer: { position: "relative" },
   profileButton: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF",
-    justifyContent: "center", alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   profileDropdown: {
-    position: "absolute", top: 45, right: 0, backgroundColor: "#FFFFFF",
-    borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 12, elevation: 8, minWidth: 120, zIndex: 1000,
+    position: "absolute",
+    top: 45,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    minWidth: 120,
+    zIndex: 1000,
   },
   dropdownItem: {
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#F0F0F0",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
   dropdownText: { fontSize: 16, fontWeight: "500", color: "#1a1a2e" },
   logoutText: { color: "#FF3B30" },
-  dateTimeCard: { marginHorizontal: 20, borderRadius: 20, padding: 28, marginBottom: 20, minHeight: 120 },
+  dateTimeCard: {
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 28,
+    marginBottom: 20,
+    minHeight: 120,
+  },
   dateTimeContent: { flexDirection: "row", alignItems: "center" },
   date: { fontSize: 38, fontWeight: "bold", color: "#FFFFFF", marginRight: 16 },
-  time: { fontSize: 24, fontWeight: "600", color: "rgba(255, 255, 255, 0.95)", flex: 1 },
+  time: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.95)",
+    flex: 1,
+  },
   profileIconContainer: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255, 255, 255, 0.25)",
-    justifyContent: "center", alignItems: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   sosButton: {
-    width: 60, height: 60, borderRadius: 30, backgroundColor: "#FF3B30",
-    justifyContent: "center", alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 8, borderWidth: 3, borderColor: "rgba(255, 255, 255, 0.8)",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.8)",
   },
-  sosButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900", letterSpacing: 1 },
+  sosButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
   myReportsButton: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: "#FFFFFF", marginHorizontal: 20, padding: 16, borderRadius: 12, marginBottom: 20,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   myReportsContent: { flexDirection: "row", alignItems: "center" },
-  myReportsText: { fontSize: 16, fontWeight: "500", color: "#000000", marginLeft: 12 },
-  notificationHeader: { alignSelf: "flex-end", marginRight: 20, marginBottom: 12, padding: 8 },
+  myReportsText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#000000",
+    marginLeft: 12,
+  },
+  notificationHeader: {
+    alignSelf: "flex-end",
+    marginRight: 20,
+    marginBottom: 12,
+    padding: 8,
+  },
   notificationsSection: { paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: "600", color: "#000000", marginBottom: 16 },
-  notificationCard: { flexDirection: "row", padding: 16, borderRadius: 12, marginBottom: 12, alignItems: "flex-start" },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 16,
+  },
+  notificationCard: {
+    flexDirection: "row",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
   notificationIcon: { marginRight: 12, marginTop: 2 },
   notificationContent: { flex: 1 },
-  notificationMessage: { fontSize: 14, fontWeight: "500", color: "#000000", lineHeight: 20, marginBottom: 4 },
+  notificationMessage: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000000",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
   notificationTime: { fontSize: 12, color: "#8E8E93", fontWeight: "400" },
 });

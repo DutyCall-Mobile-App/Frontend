@@ -30,6 +30,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { API_BASE } from "./utils/config";
 
 export default function ReportForm() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.9:3000/api/reports/create";
+  const API_URL = `${API_BASE}/reports/create`;
 
   // Language options for speech recognition
   const languageOptions = [
