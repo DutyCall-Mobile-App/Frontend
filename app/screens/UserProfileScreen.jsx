@@ -1,26 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
-  Platform,
-  Animated,
-  SafeAreaView
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import API from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from "expo-router";
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import API from '../utils/api';
 
 export default function UserProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [chat, setChat] = useState(null);
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const router = useRouter();
   const animatedHeight = useState(new Animated.Value(0))[0];
 
   // Fetch user info
@@ -72,9 +73,10 @@ export default function UserProfileScreen({ navigation }) {
   };
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('role');
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    // await AsyncStorage.removeItem('token');
+    // await AsyncStorage.removeItem('role');
+    // navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    router.push('/(tabs)');
   };
 
   const extraHeight = animatedHeight.interpolate({
