@@ -20,9 +20,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function EmergencySOS() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [loading, setLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [policeStations, setPoliceStations] = useState([]);
@@ -209,13 +213,13 @@ export default function EmergencySOS() {
   };
 
   const renderPoliceStation = ({ item }) => (
-    <View style={styles.stationCard}>
+    <View style={[styles.stationCard, { backgroundColor: colors.surface }]}>
       <View style={styles.stationHeader}>
         <View style={styles.stationInfo}>
-          <Text style={styles.stationName}>{item.name}</Text>
+          <Text style={[styles.stationName, { color: colors.text }]}>{item.name}</Text>
           <View style={styles.addressContainer}>
-            <MapPin size={14} color="#8E8E93" />
-            <Text style={styles.stationAddress}>{item.address}</Text>
+            <MapPin size={14} color={colors.textSecondary} />
+            <Text style={[styles.stationAddress, { color: colors.textSecondary }]}>{item.address}</Text>
           </View>
         </View>
         <View style={styles.distanceContainer}>
@@ -234,7 +238,7 @@ export default function EmergencySOS() {
       <View style={styles.stationDetails}>
         <View style={styles.detailRow}>
           <Phone size={16} color="#007AFF" />
-          <Text style={styles.detailText}>{item.phone}</Text>
+          <Text style={[styles.detailText, { color: colors.text }]}>{item.phone}</Text>
         </View>
         {item.rating !== "N/A" && (
           <View style={styles.detailRow}>
@@ -265,7 +269,7 @@ export default function EmergencySOS() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -279,7 +283,7 @@ export default function EmergencySOS() {
       </View>
 
       {/* Emergency Alert */}
-      <View style={styles.emergencyAlert}>
+      <View style={[styles.emergencyAlert, { backgroundColor: isDarkMode ? '#5f1e1e' : '#FFEBEE', borderColor: isDarkMode ? '#8f2e2e' : '#FFCDD2' }]}>
         <AlertTriangle size={24} color="#FF3B30" />
         <Text style={styles.emergencyText}>
           Emergency Services - Nearby Police Stations
@@ -289,7 +293,7 @@ export default function EmergencySOS() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
             Getting your location and finding nearby police stations...
           </Text>
         </View>
@@ -307,19 +311,19 @@ export default function EmergencySOS() {
       ) : (
         <ScrollView style={styles.content}>
           {currentLocation && (
-            <View style={styles.locationInfo}>
+            <View style={[styles.locationInfo, { backgroundColor: isDarkMode ? '#1e3a5f' : '#E3F2FD' }]}>
               <MapPin size={20} color="#007AFF" />
-              <Text style={styles.locationText}>
+              <Text style={[styles.locationText, { color: isDarkMode ? '#64B5F6' : '#1976D2' }]}>
                 Your current location: {currentLocation.address || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}
               </Text>
             </View>
           )}
 
           <View style={styles.stationsHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Nearby Police Stations ({policeStations.length})
             </Text>
-            <Clock size={16} color="#8E8E93" />
+            <Clock size={16} color={colors.textSecondary} />
           </View>
 
           <FlatList
@@ -332,8 +336,8 @@ export default function EmergencySOS() {
 
           {policeStations.length === 0 && (
             <View style={styles.noResultsContainer}>
-              <MapPin size={48} color="#8E8E93" />
-              <Text style={styles.noResultsText}>
+              <MapPin size={48} color={colors.textSecondary} />
+              <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
                 No police stations found in your area
               </Text>
             </View>

@@ -1,73 +1,43 @@
 import { useRouter } from "expo-router";
 import {
-    Bell,
-    BookOpen,
-    ChevronRight,
-    CircleHelp as HelpCircle,
-    Lock,
-    MessageCircle,
-    Moon,
-    Phone,
-    Shield,
-    Star,
-    Sun,
-    User,
-    Volume2,
-    Wifi
+  Bell,
+  BookOpen,
+  ChevronRight,
+  CircleHelp as HelpCircle,
+  Lock,
+  MessageCircle,
+  Moon,
+  Phone,
+  Shield,
+  Star,
+  Sun,
+  User,
+  Volume2,
+  Wifi,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-    Appearance,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useTheme } from "../context/ThemeContext";
+import { getTheme } from "../utils/theme";
 
 export default function Settings() {
   const router = useRouter();
-  
+  const { isDarkMode, toggleTheme } = useTheme();
+
   // State for toggle switches
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [wifiOnly, setWifiOnly] = useState(false);
 
-  // Dark theme colors
-  const colors = {
-    light: {
-      background: "#F2F2F7",
-      surface: "#FFFFFF",
-      text: "#000000",
-      textSecondary: "#8E8E93",
-      border: "#F2F2F7",
-      header: "#FFFFFF",
-    },
-    dark: {
-      background: "#000000",
-      surface: "#1C1C1E",
-      text: "#FFFFFF",
-      textSecondary: "#8E8E93",
-      border: "#2C2C2E",
-      header: "#1C1C1E",
-    },
-  };
-
-  const currentColors = darkMode ? colors.dark : colors.light;
-
-  // Apply dark mode to the app
-  useEffect(() => {
-    if (darkMode) {
-      // Apply dark theme styles
-      Appearance.setColorScheme('dark');
-    } else {
-      // Apply light theme styles
-      Appearance.setColorScheme('light');
-    }
-  }, [darkMode]);
+  const currentColors = getTheme(isDarkMode);
 
   const profileData = {
     icon: User,
@@ -119,12 +89,12 @@ export default function Settings() {
 
   const appearanceSettings = [
     {
-      icon: darkMode ? Moon : Sun,
+      icon: isDarkMode ? Moon : Sun,
       title: "Dark Mode",
-      subtitle: darkMode ? "Dark theme enabled" : "Light theme enabled",
+      subtitle: isDarkMode ? "Dark theme enabled" : "Light theme enabled",
       type: "toggle",
-      value: darkMode,
-      onValueChange: setDarkMode,
+      value: isDarkMode,
+      onValueChange: toggleTheme,
     },
   ];
 
@@ -192,14 +162,28 @@ export default function Settings() {
   const renderSettingItem = (item, index, colors) => {
     if (item.type === "profile") {
       return (
-        <TouchableOpacity key={index} style={styles.profileItem} onPress={item.action}>
+        <TouchableOpacity
+          key={index}
+          style={styles.profileItem}
+          onPress={item.action}
+        >
           <View style={styles.profileIconContainer}>
             <item.icon size={20} color="#007AFF" />
           </View>
           <View style={styles.profileContent}>
-            <Text style={[styles.profileName, { color: colors.text }]}>{item.subtitle}</Text>
-            <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{item.email}</Text>
-            <Text style={[styles.profilePhone, { color: colors.textSecondary }]}>{item.phone}</Text>
+            <Text style={[styles.profileName, { color: colors.text }]}>
+              {item.subtitle}
+            </Text>
+            <Text
+              style={[styles.profileEmail, { color: colors.textSecondary }]}
+            >
+              {item.email}
+            </Text>
+            <Text
+              style={[styles.profilePhone, { color: colors.textSecondary }]}
+            >
+              {item.phone}
+            </Text>
           </View>
           <ChevronRight size={20} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -208,13 +192,22 @@ export default function Settings() {
 
     if (item.type === "toggle") {
       return (
-        <View key={index} style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+        <View
+          key={index}
+          style={[styles.settingItem, { borderBottomColor: colors.border }]}
+        >
           <View style={styles.settingIconContainer}>
             <item.icon size={20} color="#007AFF" />
           </View>
           <View style={styles.settingContent}>
-            <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
-            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>
+              {item.title}
+            </Text>
+            <Text
+              style={[styles.settingSubtitle, { color: colors.textSecondary }]}
+            >
+              {item.subtitle}
+            </Text>
           </View>
           <Switch
             value={item.value}
@@ -227,8 +220,8 @@ export default function Settings() {
     }
 
     return (
-      <TouchableOpacity 
-        key={index} 
+      <TouchableOpacity
+        key={index}
         style={[styles.settingItem, { borderBottomColor: colors.border }]}
         onPress={item.action}
       >
@@ -236,8 +229,14 @@ export default function Settings() {
           <item.icon size={20} color="#007AFF" />
         </View>
         <View style={styles.settingContent}>
-          <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
-          <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
+          <Text style={[styles.settingTitle, { color: colors.text }]}>
+            {item.title}
+          </Text>
+          <Text
+            style={[styles.settingSubtitle, { color: colors.textSecondary }]}
+          >
+            {item.subtitle}
+          </Text>
         </View>
         <ChevronRight size={20} color={colors.textSecondary} />
       </TouchableOpacity>
@@ -246,17 +245,25 @@ export default function Settings() {
 
   const renderSection = (title, items, colors) => (
     <View key={title} style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
-      <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+        {title}
+      </Text>
+      <View
+        style={[styles.sectionContainer, { backgroundColor: colors.surface }]}
+      >
         {items.map((item, index) => renderSettingItem(item, index, colors))}
       </View>
     </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: currentColors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: currentColors.background }]}
+    >
       <View style={[styles.header, { backgroundColor: currentColors.header }]}>
-        <Text style={[styles.title, { color: currentColors.text }]}>Settings</Text>
+        <Text style={[styles.title, { color: currentColors.text }]}>
+          Settings
+        </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -280,19 +287,64 @@ export default function Settings() {
 
         {/* App Information */}
         <View style={styles.appInfoSection}>
-          <Text style={[styles.appInfoTitle, { color: currentColors.textSecondary }]}>App Information</Text>
-          <View style={[styles.appInfoContainer, { backgroundColor: currentColors.surface }]}>
+          <Text
+            style={[
+              styles.appInfoTitle,
+              { color: currentColors.textSecondary },
+            ]}
+          >
+            App Information
+          </Text>
+          <View
+            style={[
+              styles.appInfoContainer,
+              { backgroundColor: currentColors.surface },
+            ]}
+          >
             <View style={styles.appInfoItem}>
-              <Text style={[styles.appInfoLabel, { color: currentColors.textSecondary }]}>Version</Text>
-              <Text style={[styles.appInfoValue, { color: currentColors.text }]}>{appInfo.version}</Text>
+              <Text
+                style={[
+                  styles.appInfoLabel,
+                  { color: currentColors.textSecondary },
+                ]}
+              >
+                Version
+              </Text>
+              <Text
+                style={[styles.appInfoValue, { color: currentColors.text }]}
+              >
+                {appInfo.version}
+              </Text>
             </View>
             <View style={styles.appInfoItem}>
-              <Text style={[styles.appInfoLabel, { color: currentColors.textSecondary }]}>Build</Text>
-              <Text style={[styles.appInfoValue, { color: currentColors.text }]}>{appInfo.build}</Text>
+              <Text
+                style={[
+                  styles.appInfoLabel,
+                  { color: currentColors.textSecondary },
+                ]}
+              >
+                Build
+              </Text>
+              <Text
+                style={[styles.appInfoValue, { color: currentColors.text }]}
+              >
+                {appInfo.build}
+              </Text>
             </View>
             <View style={styles.appInfoItem}>
-              <Text style={[styles.appInfoLabel, { color: currentColors.textSecondary }]}>Last Updated</Text>
-              <Text style={[styles.appInfoValue, { color: currentColors.text }]}>{appInfo.lastUpdated}</Text>
+              <Text
+                style={[
+                  styles.appInfoLabel,
+                  { color: currentColors.textSecondary },
+                ]}
+              >
+                Last Updated
+              </Text>
+              <Text
+                style={[styles.appInfoValue, { color: currentColors.text }]}
+              >
+                {appInfo.lastUpdated}
+              </Text>
             </View>
           </View>
         </View>

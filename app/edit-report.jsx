@@ -25,10 +25,14 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import ApiService from "../services/apiService";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function EditReport() {
   const router = useRouter();
   const { reportId } = useLocalSearchParams();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   // Form state
   const [loading, setLoading] = useState(true);
@@ -447,19 +451,19 @@ export default function EditReport() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.surface }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
             <ChevronLeft size={24} color="#007AFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>Edit Report</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Edit Report</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading report data...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading report data...</Text>
         </View>
       </View>
     );
@@ -467,15 +471,15 @@ export default function EditReport() {
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.surface }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
             <ChevronLeft size={24} color="#007AFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>Edit Report</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Edit Report</Text>
         </View>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Error: {error}</Text>
@@ -491,15 +495,15 @@ export default function EditReport() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <ChevronLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Report</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Edit Report</Text>
       </View>
 
       <ScrollView
@@ -510,27 +514,27 @@ export default function EditReport() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Category Display */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <FileText size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>Category</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Category</Text>
           </View>
-          <View style={styles.categoryDisplay}>
-            <Text style={styles.categoryText}>{category}</Text>
+          <View style={[styles.categoryDisplay, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+            <Text style={[styles.categoryText, { color: colors.text }]}>{category}</Text>
           </View>
         </View>
 
         {/* Location Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <MapPin size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>Location</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
           </View>
 
           {location ? (
             <>
-              <View style={styles.selectedLocationContainer}>
-                <Text style={styles.selectedLocationText}>
+              <View style={[styles.selectedLocationContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                <Text style={[styles.selectedLocationText, { color: colors.text }]}>
                   {location.address}
                 </Text>
                 <TouchableOpacity onPress={clearLocation}>
@@ -613,26 +617,27 @@ export default function EditReport() {
           ) : (
             <>
               <TextInput
-                style={styles.autocompleteInput}
+                style={[styles.autocompleteInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                 placeholder="Search for a location..."
                 value={query}
                 onChangeText={searchPlaces}
                 onFocus={() => handleTextInputFocus(300)}
+                placeholderTextColor={colors.textSecondary}
               />
 
               {results.length > 0 && (
                 <FlatList
                   data={results}
                   keyExtractor={(item) => item.place_id}
-                  style={styles.resultsList}
+                  style={[styles.resultsList, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={styles.resultItem}
+                      style={[styles.resultItem, { borderBottomColor: colors.border }]}
                       onPress={() =>
                         handleSelectPlace(item.place_id, item.description)
                       }
                     >
-                      <Text>{item.description}</Text>
+                      <Text style={{ color: colors.text }}>{item.description}</Text>
                     </TouchableOpacity>
                   )}
                 />
@@ -652,47 +657,48 @@ export default function EditReport() {
         </View>
 
         {/* Description Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <FileText size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Description</Text>
           </View>
 
           <View style={styles.descriptionContainer}>
             <TextInput
-              style={styles.textArea}
+              style={[styles.textArea, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
               placeholder="Describe the issue in detail..."
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={4}
               onFocus={() => handleTextInputFocus(600)}
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
         </View>
 
         {/* Evidence Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <Camera size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>Evidence (Optional)</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Evidence (Optional)</Text>
           </View>
 
           <View style={styles.evidenceContainer}>
             <TouchableOpacity
-              style={styles.evidenceButton}
+              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
               onPress={captureMedia}
             >
               <Camera size={24} color="#007AFF" />
-              <Text style={styles.evidenceText}>Take Photo/Video</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>Take Photo/Video</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.evidenceButton}
+              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
               onPress={chooseMedia}
             >
               <ImageIcon size={24} color="#007AFF" />
-              <Text style={styles.evidenceText}>Choose from Gallery</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>Choose from Gallery</Text>
             </TouchableOpacity>
           </View>
 
@@ -726,10 +732,10 @@ export default function EditReport() {
         </View>
 
         {/* Personal Information Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
-            <View style={styles.anonymousToggle}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Personal Information</Text>
+            <View style={[styles.anonymousToggle, { backgroundColor: isDarkMode ? colors.inputBackground : '#E9E9EB' }]}>
               <TouchableOpacity
                 style={[
                   styles.toggleButton,
@@ -740,6 +746,7 @@ export default function EditReport() {
                 <Text
                   style={[
                     styles.toggleButtonText,
+                    { color: postAnonymous ? '#FFFFFF' : colors.text },
                     postAnonymous && styles.toggleButtonTextActive,
                   ]}
                 >
@@ -756,6 +763,7 @@ export default function EditReport() {
                 <Text
                   style={[
                     styles.toggleButtonText,
+                    { color: !postAnonymous ? '#FFFFFF' : colors.text },
                     !postAnonymous && styles.toggleButtonTextActive,
                   ]}
                 >
@@ -768,26 +776,29 @@ export default function EditReport() {
           {!postAnonymous && (
             <>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                 placeholder="Full Name"
                 value={fullName}
                 onChangeText={setFullName}
                 onFocus={() => handleTextInputFocus(1000)}
+                placeholderTextColor={colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                 placeholder="NIC Number"
                 value={nicNumber}
                 onChangeText={setNicNumber}
                 onFocus={() => handleTextInputFocus(1100)}
+                placeholderTextColor={colors.textSecondary}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                 placeholder="Contact Number"
                 value={contactNumber}
                 onChangeText={setContactNumber}
                 keyboardType="phone-pad"
                 onFocus={() => handleTextInputFocus(1200)}
+                placeholderTextColor={colors.textSecondary}
               />
             </>
           )}

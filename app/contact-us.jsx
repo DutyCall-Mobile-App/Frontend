@@ -21,9 +21,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function ContactUs() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -112,7 +116,7 @@ export default function ContactUs() {
   const renderContactItem = (item, index) => (
     <TouchableOpacity
       key={index}
-      style={styles.contactItem}
+      style={[styles.contactItem, { borderBottomColor: colors.border }]}
       onPress={item.action}
       disabled={!item.action}
     >
@@ -120,96 +124,96 @@ export default function ContactUs() {
         <item.icon size={24} color={item.color} />
       </View>
       <View style={styles.contactInfo}>
-        <Text style={styles.contactTitle}>{item.title}</Text>
-        <Text style={styles.contactValue}>{item.value}</Text>
+        <Text style={[styles.contactTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.contactValue, { color: colors.textSecondary }]}>{item.value}</Text>
       </View>
-      {item.action && <Text style={styles.chevron}>›</Text>}
+      {item.action && <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>}
     </TouchableOpacity>
   );
 
   const renderTeamMember = (member, index) => (
-    <View key={index} style={styles.teamMember}>
-      <View style={styles.memberAvatar}>
+    <View key={index} style={[styles.teamMember, { borderBottomColor: colors.border }]}>
+      <View style={[styles.memberAvatar, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
         <Users size={20} color="#007AFF" />
       </View>
       <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{member.name}</Text>
+        <Text style={[styles.memberName, { color: colors.text }]}>{member.name}</Text>
         <Text style={styles.memberRole}>{member.role}</Text>
-        <Text style={styles.memberContact}>{member.email}</Text>
-        <Text style={styles.memberContact}>{member.phone}</Text>
+        <Text style={[styles.memberContact, { color: colors.textSecondary }]}>{member.email}</Text>
+        <Text style={[styles.memberContact, { color: colors.textSecondary }]}>{member.phone}</Text>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Contact Us</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Contact Us</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Contact Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Get in Touch</Text>
-          <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Get in Touch</Text>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
             {contactInfo.map(renderContactItem)}
           </View>
         </View>
 
         {/* Contact Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Send us a Message</Text>
-          <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Send us a Message</Text>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Full Name</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
                   placeholder="Enter your full name"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                   value={formData.email}
                   onChangeText={(text) => setFormData({ ...formData, email: text })}
                   placeholder="Enter your email"
                   keyboardType="email-address"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Subject</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Subject</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                   value={formData.subject}
                   onChangeText={(text) => setFormData({ ...formData, subject: text })}
                   placeholder="What's this about?"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Message</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Message</Text>
                 <TextInput
-                  style={[styles.textInput, styles.messageInput]}
+                  style={[styles.textInput, styles.messageInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                   value={formData.message}
                   onChangeText={(text) => setFormData({ ...formData, message: text })}
                   placeholder="Tell us how we can help you..."
                   multiline
                   numberOfLines={5}
                   textAlignVertical="top"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
@@ -225,19 +229,19 @@ export default function ContactUs() {
 
         {/* Company Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About DutyCall</Text>
-          <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About DutyCall</Text>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
             <View style={styles.companyInfo}>
-              <View style={styles.companyIcon}>
+              <View style={[styles.companyIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <Building size={24} color="#007AFF" />
               </View>
               <View style={styles.companyDetails}>
-                <Text style={styles.companyName}>DutyCall Technologies</Text>
-                <Text style={styles.companyDescription}>
+                <Text style={[styles.companyName, { color: colors.text }]}>DutyCall Technologies</Text>
+                <Text style={[styles.companyDescription, { color: colors.textSecondary }]}>
                   We are a technology company dedicated to improving public safety and civic engagement 
                   in Sri Lanka through innovative mobile applications.
                 </Text>
-                <Text style={styles.companyMission}>
+                <Text style={[styles.companyMission, { color: colors.textSecondary }]}>
                   Our mission is to bridge the gap between citizens and government services, 
                   making it easier for people to report issues and get help when they need it most.
                 </Text>
@@ -247,9 +251,9 @@ export default function ContactUs() {
         </View>
 
         {/* Response Time */}
-        <View style={styles.responseTime}>
+        <View style={[styles.responseTime, { backgroundColor: isDarkMode ? '#1e3a5f' : '#E3F2FD' }]}>
           <MessageCircle size={20} color="#007AFF" />
-          <Text style={styles.responseTimeText}>
+          <Text style={[styles.responseTimeText, { color: isDarkMode ? '#64B5F6' : '#007AFF' }]}>
             We typically respond to all inquiries within 24 hours during business days.
           </Text>
         </View>

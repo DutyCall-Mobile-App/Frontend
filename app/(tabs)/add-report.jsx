@@ -20,6 +20,8 @@ import {
 } from "react-native";
 
 import { useState } from "react";
+import { useTheme } from "../context/ThemeContext";
+import { getTheme } from "../utils/theme";
 
 const categories = [
   {
@@ -85,6 +87,8 @@ const categories = [
 
 export default function AddReport() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCategories = Array.isArray(categories)
@@ -109,29 +113,29 @@ export default function AddReport() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Report a new Issue</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Report a new Issue</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <X size={24} color="#8E8E93" />
+          <X size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <Search size={16} color="#8E8E93" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#E9E9EB' }]}>
+        <Search size={16} color={colors.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           placeholder="Search Category"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#8E8E93"
+          placeholderTextColor={colors.textSecondary}
         />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {filteredCategories.map((category) => (
-          <View key={category.id} style={styles.categoryContainer}>
-            <View style={styles.categoryHeader}>
+          <View key={category.id} style={[styles.categoryContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.categoryHeader, { borderBottomColor: colors.border }]}>
               <View
                 style={[
                   styles.categoryIcon,
@@ -140,19 +144,19 @@ export default function AddReport() {
               >
                 <category.icon size={20} color={category.color} />
               </View>
-              <Text style={styles.categoryTitle}>{category.title}</Text>
+              <Text style={[styles.categoryTitle, { color: colors.text }]}>{category.title}</Text>
             </View>
 
             {category.subcategories.map((subcategory, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.subcategoryItem}
+                style={[styles.subcategoryItem, { borderBottomColor: colors.border }]}
                 onPress={() =>
                   handleCategorySelect(category.id, subcategory, category.title)
                 }
               >
-                <Text style={styles.subcategoryText}>{subcategory}</Text>
-                <ChevronRight size={16} color="#C7C7CC" />
+                <Text style={[styles.subcategoryText, { color: colors.text }]}>{subcategory}</Text>
+                <ChevronRight size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>

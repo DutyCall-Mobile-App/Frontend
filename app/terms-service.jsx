@@ -15,9 +15,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function TermsService() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [expandedSections, setExpandedSections] = useState({});
 
   const toggleSection = (sectionId) => {
@@ -210,44 +214,44 @@ We will respond to all inquiries within 5 business days.`,
   ];
 
   const renderSection = (section) => (
-    <View key={section.id} style={styles.section}>
+    <View key={section.id} style={[styles.section, { backgroundColor: colors.surface }]}>
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={() => toggleSection(section.id)}
       >
         <View style={styles.sectionTitleContainer}>
           <section.icon size={20} color="#007AFF" />
-          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{section.title}</Text>
         </View>
-        <Text style={styles.expandIcon}>
+        <Text style={[styles.expandIcon, { color: colors.text }]}>
           {expandedSections[section.id] ? "−" : "+"}
         </Text>
       </TouchableOpacity>
       
       {expandedSections[section.id] && (
         <View style={styles.sectionContent}>
-          <Text style={styles.sectionText}>{section.content}</Text>
+          <Text style={[styles.sectionText, { color: colors.textSecondary }]}>{section.content}</Text>
         </View>
       )}
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Terms of Service</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Terms of Service</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Introduction */}
-        <View style={styles.introSection}>
-          <Text style={styles.introTitle}>Terms of Service</Text>
-          <Text style={styles.introSubtitle}>Last Updated: January 15, 2024</Text>
-          <Text style={styles.introText}>
+        <View style={[styles.introSection, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.introTitle, { color: colors.text }]}>Terms of Service</Text>
+          <Text style={[styles.introSubtitle, { color: colors.textSecondary }]}>Last Updated: January 15, 2024</Text>
+          <Text style={[styles.introText, { color: colors.textSecondary }]}>
             Please read these Terms of Service carefully before using the DutyCall mobile application. 
             These terms govern your use of our service and outline your rights and responsibilities.
           </Text>
@@ -259,9 +263,9 @@ We will respond to all inquiries within 5 business days.`,
         </View>
 
         {/* Agreement */}
-        <View style={styles.agreementSection}>
-          <Text style={styles.agreementTitle}>Agreement to Terms</Text>
-          <Text style={styles.agreementText}>
+        <View style={[styles.agreementSection, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.agreementTitle, { color: colors.text }]}>Agreement to Terms</Text>
+          <Text style={[styles.agreementText, { color: colors.textSecondary }]}>
             By using the DutyCall app, you acknowledge that you have read, understood, 
             and agree to be bound by these Terms of Service.
           </Text>

@@ -29,33 +29,38 @@
 //   );
 // }
 
-
 // app/_layout.jsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, Stack, usePathname } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { ThemeProvider } from "./context/ThemeContext";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/onboard"]);
 
 export default function RootLayout() {
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [token, storedRole] = await Promise.all([
+        const [token, storedRole, onboardingStatus] = await Promise.all([
           AsyncStorage.getItem("token"),
           AsyncStorage.getItem("role"),
+          AsyncStorage.getItem("onboardingCompleted"),
         ]);
         setAuthed(!!token);
         setRole(storedRole || null);
+        setOnboardingCompleted(onboardingStatus === "true");
       } catch (e) {
         setAuthed(false);
         setRole(null);
+        setOnboardingCompleted(false);
       } finally {
         setIsReady(true);
       }
@@ -70,36 +75,51 @@ export default function RootLayout() {
     );
   }
 
-  // If not authenticated, allow only /login and /register
-  if (!authed && !PUBLIC_ROUTES.has(pathname)) {
+  // If onboarding not completed and not on onboarding screen, redirect to onboarding
+  if (!onboardingCompleted && !pathname.startsWith("/onboard")) {
+    return <Redirect href="/onboard" />;
+  }
+
+  // If not authenticated, allow only /login, /register, and /onboard
+  if (
+    !authed &&
+    !PUBLIC_ROUTES.has(pathname) &&
+    !pathname.startsWith("/onboard")
+  ) {
     return <Redirect href="/login" />;
   }
 
   // If authenticated and currently on /login or /register,
   // send them to the right home:
-  if (authed && PUBLIC_ROUTES.has(pathname)) {
+  if (authed && (pathname === "/login" || pathname === "/register")) {
     if (role === "policeman") return <Redirect href="/police-dashboard" />;
     return <Redirect href="/" />; // (tabs)/index
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
-      {/* Public */}
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }} initialRouteName="onboard">
+        <StatusBar style="auto" />
+        {/* Onboarding */}
+        <Stack.Screen name="onboard" />
 
-      {/* Tabs group (your Home, Add Report, Settings) */}
-      <Stack.Screen name="(tabs)" />
+        {/* Public */}
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
 
-      {/* Private routes (short aliases added in step 2) */}
-      <Stack.Screen name="police-dashboard" />
-      <Stack.Screen name="police-chat-detail" />
-      <Stack.Screen name="user-profile" />
+        {/* Tabs group (your Home, Add Report, Settings) */}
+        <Stack.Screen name="(tabs)" />
 
-      <Stack.Screen name="emergency-sos"  />
-        <Stack.Screen name="my-reports"  />
-         <Stack.Screen name="report-form"  />
-         <Stack.Screen name="report-details"  />
-    </Stack>
+        {/* Private routes (short aliases added in step 2) */}
+        <Stack.Screen name="police-dashboard" />
+        <Stack.Screen name="police-chat-detail" />
+        <Stack.Screen name="user-profile" />
+
+        <Stack.Screen name="emergency-sos" />
+        <Stack.Screen name="my-reports" />
+        <Stack.Screen name="report-form" />
+        <Stack.Screen name="report-details" />
+      </Stack>
+    </ThemeProvider>
   );
 }

@@ -529,9 +529,13 @@ import {
   View,
 } from "react-native";
 import io from "socket.io-client";
+import { useTheme } from "../context/ThemeContext";
+import { getTheme } from "../utils/theme";
 
 export default function Dashboard() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
@@ -662,7 +666,7 @@ export default function Dashboard() {
 
     for (let i = 0; i < repeatCount; i++) {
       items.push(
-        <Text key={i} style={styles.dutyCallText}>
+        <Text key={i} style={[styles.dutyCallText, { color: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(3, 27, 53, 0.03)' }]}>
           DUTY CALL
         </Text>
       );
@@ -672,7 +676,7 @@ export default function Dashboard() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <DutyCallBackground />
       <TouchableOpacity
         style={styles.overlay}
@@ -694,15 +698,15 @@ export default function Dashboard() {
                 <User size={24} color="#007AFF" />
               </TouchableOpacity>
               {showProfileDropdown && (
-                <View style={styles.profileDropdown}>
+                <View style={[styles.profileDropdown, { backgroundColor: colors.surface }]}>
                   <TouchableOpacity
-                    style={styles.dropdownItem}
+                    style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleProfileOption("profile")}
                   >
-                    <Text style={styles.dropdownText}>Profile</Text>
+                    <Text style={[styles.dropdownText, { color: colors.text }]}>Profile</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.dropdownItem}
+                    style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleProfileOption("logout")}
                   >
                     <Text style={[styles.dropdownText, styles.logoutText]}>Logout</Text>
@@ -726,14 +730,14 @@ export default function Dashboard() {
           </LinearGradient>
 
           <TouchableOpacity
-            style={styles.myReportsButton}
+            style={[styles.myReportsButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/my-reports")}
           >
             <View style={styles.myReportsContent}>
               <FileText size={20} color="#007AFF" />
-              <Text style={styles.myReportsText}>My Reports</Text>
+              <Text style={[styles.myReportsText, { color: colors.text }]}>My Reports</Text>
             </View>
-            <ChevronRight size={20} color="#C7C7CC" />
+            <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.notificationHeader}>
@@ -741,7 +745,7 @@ export default function Dashboard() {
           </TouchableOpacity>
 
           <View className="notificationsSection" style={styles.notificationsSection}>
-            <Text style={styles.sectionTitle}>Recent Notifications</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Notifications</Text>
             {notifications.map((notification) => (
               <TouchableOpacity
                 key={notification._id}
@@ -751,8 +755,9 @@ export default function Dashboard() {
                   style={[
                     styles.notificationCard,
                     {
-                      backgroundColor:
-                        notification.type === "new_report" ? "#E3F2FD" : "#FFF4E6",
+                      backgroundColor: isDarkMode 
+                        ? (notification.type === "new_report" ? "#1e3a5f" : "#5f4a1e")
+                        : (notification.type === "new_report" ? "#E3F2FD" : "#FFF4E6"),
                     },
                   ]}
                 >
@@ -764,8 +769,8 @@ export default function Dashboard() {
                     )}
                   </View>
                   <View style={styles.notificationContent}>
-                    <Text style={styles.notificationMessage}>{notification.message}</Text>
-                    <Text style={styles.notificationTime}>
+                    <Text style={[styles.notificationMessage, { color: colors.text }]}>{notification.message}</Text>
+                    <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>
                       {new Date(notification.createdAt).toLocaleString()}
                     </Text>
                   </View>
