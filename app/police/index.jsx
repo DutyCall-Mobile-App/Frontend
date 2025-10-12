@@ -9,49 +9,75 @@ import {
   Alert,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from "react-native";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ApiService from "../../services/apiService";
+import { AlertCircle, CheckCircle, Clock } from "lucide-react-native";
 
-// ✅ Placeholder avatar image - replace with real officer photo later
-const avatar = require("../../assets/images/react-logo.png"); // 👈 Update path to real officer avatar later
+// ✅ Placeholder avatar
+const avatar = require("../../assets/images/react-logo.png");
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+const formatDate = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
+};
 
 export default function PoliceDashboard() {
-  // 🟢 State for online status - will be fetched from backend later
-  const [isOnline, setIsOnline] = useState(true); // 👈 Default: online. Later: fetch from API or Firebase
+  const router = useRouter();
 
-  // 🔔 Placeholder for notification press - will show real notifications later
-  const handleNotificationPress = () => {
-    Alert.alert("Notifications", "Coming soon!"); // 👈 Replace with real notification screen later
-  };
-  // 🕒 Hardcoded shift times for now — will fetch from backend later
+  // States
+  const [isOnline, setIsOnline] = useState(true);
+  const [isOnDuty, setIsOnDuty] = useState(false);
+  const [countdown, setCountdown] = useState("Loading...");
+  const [stats, setStats] = useState({ pending: 0, inProgress: 0, resolved: 0 });
+  const [priorityReports, setPriorityReports] = useState([]);
+  const [recentReports, setRecentReports] = useState([]);
+  const [officerDetails, setOfficerDetails] = useState({
+    name: "",
+    badgeNumber: "",
+    district: "",
+    profileImage: "",
+    status: "active",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showSOSModal, setShowSOSModal] = useState(false);
+  const [sosCountdown, setSOSCountdown] = useState(5);
+
+  // Shift times (could be fetched from backend later)
   const shiftStart = "08:00";
   const shiftEnd = "20:00";
 
-  // ⏳ State for countdown text
-  const [countdown, setCountdown] = useState("Loading...");
-
-  // 🟢 State for duty status
-  const [isOnDuty, setIsOnDuty] = useState(false);
-
-  // 🔄 Update countdown every second
+  // Duty countdown logic
   useEffect(() => {
     const calculateCountdown = () => {
       const now = new Date();
       const today = new Date();
-
-      // Parse shift times (assume same day)
       const [startHour, startMin] = shiftStart.split(":").map(Number);
       const [endHour, endMin] = shiftEnd.split(":").map(Number);
 
       const shiftStartTime = new Date(today);
       shiftStartTime.setHours(startHour, startMin, 0, 0);
-
       const shiftEndTime = new Date(today);
       shiftEndTime.setHours(endHour, endMin, 0, 0);
 
-      // Handle overnight shifts if needed (not required for 08–20)
       if (now >= shiftStartTime && now < shiftEndTime) {
         setIsOnDuty(true);
         const diffMs = shiftEndTime - now;
@@ -65,213 +91,71 @@ export default function PoliceDashboard() {
       }
     };
 
-    // Run immediately
     calculateCountdown();
-
-    // Update every second
     const interval = setInterval(calculateCountdown, 1000);
-
     return () => clearInterval(interval);
-  }, [shiftStart, shiftEnd]); // 👈 Later: replace with [officerShift] from backend
-  // 🟡 MOCK DATA — Replace with real API call when backend is ready
-  const fetchOfficerStats = async () => {
-    // Simulate network delay (optional)
-    await new Promise((resolve) => setTimeout(resolve, 300));
+  }, [shiftStart, shiftEnd]);
 
-    // 👇 HARD-CODED MOCK VALUES (matches your prototype)
-    return {
-      pending: 12,
-      inProgress: 8,
-      resolved: 45,
-    };
-  };
-
-  // 📊 State for stats
-  const [stats, setStats] = useState({
-    pending: 0,
-    inProgress: 0,
-    resolved: 0,
-  });
-
-  // 🔁 Load stats on mount
+  // Fetch officer details
   useEffect(() => {
-    const loadStats = async () => {
+    const fetchOfficerDetails = async () => {
       try {
-        // 👉 TODAY: Use mock data
-        const data = await fetchOfficerStats();
-
-        // 🔜 FUTURE: UNCOMMENT BELOW & DELETE MOCK WHEN BACKEND IS READY
-        // const data = await apiService.getOfficerStats(); // ← from services/apiService.js
-
-        setStats(data);
-      } catch (error) {
-        console.error("Failed to load officer stats:", error);
-        // Optional: show error toast
+        const details = await ApiService.getOfficerDetails();
+        if (details) {
+          setOfficerDetails({
+            name: details.name || "Officer",
+            badgeNumber: details.badgeNumber || "N/A",
+            district: details.district || "N/A",
+            profileImage: details.profileImage || "",
+            status: details.status || "active",
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching officer details:", err);
       }
     };
-
-    loadStats();
-  }, []); // 🔜 FUTURE: Add dependency like [officerId] if needed
-  // 🔴 MOCK DATA — Replace with real API call when backend is ready
-  const fetchPriorityReports = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const mockReports = [
-      {
-        id: "R2025-0089",
-        title: "Domestic Violence Report",
-        priority: "HIGH",
-        reporter: "Sarah M.",
-        timeAgo: "15 min ago",
-        location: "Oak Street, District 12",
-        icon: "location-on", // MaterialIcons name
-        createdAt: new Date(Date.now() - 15 * 60 * 1000),
-      },
-      {
-        id: "R2025-0087",
-        title: "Vehicle Theft",
-        priority: "MED",
-        reporter: "John D.",
-        timeAgo: "32 min ago",
-        location: "Main Plaza",
-        icon: "directions-car",
-        createdAt: new Date(Date.now() - 32 * 60 * 1000),
-      },
-      {
-        id: "R2025-0090",
-        title: "Suspicious Activity",
-        priority: "HIGH",
-        reporter: "Alice K.",
-        timeAgo: "5 min ago",
-        location: "5th Avenue",
-        icon: "visibility",
-        createdAt: new Date(Date.now() - 5 * 60 * 1000),
-      },
-    ];
-
-    // Sort: HIGH first, then MED; newest first within each
-    const sorted = mockReports.sort((a, b) => {
-      const priorityOrder = { HIGH: 0, MED: 1 };
-      return (
-        priorityOrder[a.priority] - priorityOrder[b.priority] ||
-        b.createdAt - a.createdAt
-      );
-    });
-
-    return sorted.slice(0, 2);
-  };
-
-  // 📊 State
-  const [priorityReports, setPriorityReports] = useState([]);
-
-  // 🔁 Load on mount
-  useEffect(() => {
-    const loadPriorityReports = async () => {
-      try {
-        // 👉 TODAY: Use mock
-        const reports = await fetchPriorityReports();
-
-        // 🔜 FUTURE: UNCOMMENT BELOW WHEN BACKEND IS READY
-        // const reports = await apiService.getOfficerPriorityReports(); // e.g., /reports/priority?limit=2
-
-        setPriorityReports(reports);
-      } catch (error) {
-        console.error("Failed to load priority reports:", error);
-      }
-    };
-
-    loadPriorityReports();
+    fetchOfficerDetails();
   }, []);
-  // 📜 MOCK RECENT REPORTS — Replace with real API when backend is ready
-  const fetchRecentReports = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const mockReports = [
-      {
-        id: "R2025-0086",
-        title: "Noise Complaint",
-        priority: "LOW",
-        reporter: "Maria L.",
-        timeAgo: "1 hour ago",
-        location: "Main Street",
-        status: "pending",
-        createdAt: new Date(Date.now() - 60 * 60 * 1000),
-      },
-      {
-        id: "R2025-0085",
-        title: "Lost Property",
-        priority: "LOW",
-        reporter: "Robert K.",
-        timeAgo: "2 hours ago",
-        location: "Central Mall",
-        status: "pending",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      },
-      {
-        id: "R2025-0084",
-        title: "Traffic Violation",
-        priority: "RESOLVED",
-        reporter: "Jennifer S.",
-        timeAgo: "3 hours ago",
-        location: "Highway 10",
-        status: "resolved",
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      },
-      {
-        id: "R2025-0083",
-        title: "Public Nuisance",
-        priority: "LOW",
-        reporter: "David P.",
-        timeAgo: "4 hours ago",
-        location: "Park Lane",
-        status: "inProgress",
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      },
-    ];
+  // Fetch all dashboard data
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [priority, recent, reportStats] = await Promise.all([
+        ApiService.getPriorityReports(),
+        ApiService.getRecentReports(),
+        ApiService.getReportStats(),
+      ]);
 
-    // Sort by newest first
-    const sorted = mockReports.sort((a, b) => b.createdAt - a.createdAt);
-    return sorted;
+      setPriorityReports(priority);
+      setRecentReports(recent);
+      setStats({
+        pending: reportStats.pending || 0,
+        inProgress: reportStats.inProgress || 0,
+        resolved: reportStats.resolved || 0,
+      });
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 📊 State
-  const [recentReports, setRecentReports] = useState([]);
-  const [totalReports, setTotalReports] = useState(0);
-
-  // 🔁 Load on mount
   useEffect(() => {
-    const loadRecentReports = async () => {
-      try {
-        // 👉 TODAY: Use mock
-        const allReports = await fetchRecentReports();
-
-        // 🔜 FUTURE: UNCOMMENT BELOW WHEN BACKEND IS READY
-        // const allReports = await apiService.getOfficerReports(); // e.g., /reports?sort=createdAt&limit=10
-
-        setRecentReports(allReports.slice(0, 3)); // Show top 3
-        setTotalReports(allReports.length);
-      } catch (error) {
-        console.error("Failed to load recent reports:", error);
-      }
-    };
-
-    loadRecentReports();
+    fetchDashboardData();
   }, []);
-  // SOS State
-  const [showSOSModal, setShowSOSModal] = useState(false);
-  const [sosCountdown, setSOSCountdown] = useState(5);
 
-  // SOS Handler
+  // SOS logic
   const handleSOSPress = () => {
     setShowSOSModal(true);
     setSOSCountdown(5);
-
     const timer = setInterval(() => {
       setSOSCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           setShowSOSModal(false);
-          router.push("/police-screens/emergency-sos"); // Navigate to SOS screen
+          router.push("/police-screens/emergency-sos");
           return 0;
         }
         return prev - 1;
@@ -279,109 +163,92 @@ export default function PoliceDashboard() {
     }, 1000);
   };
 
-  // Cancel SOS
   const cancelSOS = () => {
     setShowSOSModal(false);
   };
 
+  const handleNotificationPress = () => {
+    Alert.alert("Notifications", "Coming soon!");
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1a73e8" />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchDashboardData}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* 🚨 HEADER SECTION */}
-        <TouchableOpacity
-          style={styles.header}
-          onPress={() => router.push("/police/profile")} // 👈 Navigate to profile tab when header is tapped
-        >
-          {/* LEFT: Officer Info */}
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* 🚨 HEADER */}
+        <TouchableOpacity style={styles.header} onPress={() => router.push("/police/profile")}>
           <View style={styles.officerInfo}>
-            {/* Avatar Container with Status Dot */}
             <View style={styles.avatarContainer}>
-              <Image source={avatar} style={styles.avatar} />
-              {/* 🟢/🔴 Online Status Indicator - positioned on avatar outline */}
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: isOnline ? "green" : "red" },
-                ]}
+              <Image
+                source={officerDetails.profileImage ? { uri: officerDetails.profileImage } : avatar}
+                style={styles.avatar}
               />
+              <View style={[styles.statusDot, { backgroundColor: isOnline ? "green" : "red" }]} />
             </View>
             <View style={styles.officerText}>
-              <Text style={styles.officerName}>Officer Johnson</Text>
-              <Text style={styles.officerBadge}>Badge #4729 • District 12</Text>
+              <Text style={styles.officerName}>{officerDetails.name}</Text>
+              <Text style={styles.officerBadge}>
+                Badge #{officerDetails.badgeNumber} • District {officerDetails.district}
+              </Text>
             </View>
           </View>
-
-          {/* RIGHT: Notification Icon */}
-          <TouchableOpacity
-            style={styles.notificationIcon}
-            onPress={handleNotificationPress} // 👈 Will open notification list later
-          >
-            <MaterialIcons name="notifications" size={24} color="white" />
+          <TouchableOpacity style={styles.notificationIcon} onPress={()=> router.push("/screens/PoliceDashboardScreen")}>
+            <MaterialIcons name="chat" size={24} color="white" />
           </TouchableOpacity>
         </TouchableOpacity>
-        {/* 🟢 STATUS BANNER - On Duty + Shift Countdown */}
+
+        {/* 🟢 STATUS BANNER */}
         <View style={styles.statusBanner}>
-          {/* Left: On Duty Indicator */}
           <View style={styles.onDutySection}>
-            {/* Green/Red Dot */}
-            <View
-              style={[
-                styles.dutyDot,
-                {
-                  backgroundColor: isOnDuty ? "green" : "red",
-                },
-              ]}
-            />
+            <View style={[styles.dutyDot, { backgroundColor: isOnDuty ? "green" : "red" }]} />
             <Text style={styles.dutyText}>On Duty</Text>
           </View>
-
-          {/* Right: Shift Info + Countdown */}
           <View style={styles.shiftInfo}>
-            {/* 👇 Later: Replace hardcoded shift with data from backend */}
-            <Text style={styles.shiftTimeText}>
-              Shift: {shiftStart} – {shiftEnd}
-            </Text>
+            <Text style={styles.shiftTimeText}>Shift: {shiftStart} – {shiftEnd}</Text>
             <Text style={styles.countdownText}>{countdown}</Text>
           </View>
         </View>
-        {/* 📊 STATS CARDS — Pending | In Progress | Resolved */}
+
+        {/* 📊 STATS */}
         <View style={styles.statsContainer}>
-          {/* Card 1: Pending */}
           <View style={[styles.statCard, { backgroundColor: "#ffcdd2" }]}>
             <MaterialIcons name="hourglass-empty" size={24} color="#c62828" />
-            <Text style={styles.statCount}>
-              {/* 🔜 FUTURE: Replace mock with real data from backend */}
-              {stats.pending}
-            </Text>
+            <Text style={styles.statCount}>{stats.pending}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
-
-          {/* Card 2: In Progress */}
           <View style={[styles.statCard, { backgroundColor: "#fff9c4" }]}>
             <MaterialIcons name="settings" size={24} color="#f57f17" />
-            <Text style={styles.statCount}>
-              {/* 🔜 FUTURE: Replace mock with real data from backend */}
-              {stats.inProgress}
-            </Text>
+            <Text style={styles.statCount}>{stats.inProgress}</Text>
             <Text style={styles.statLabel}>In Progress</Text>
           </View>
-
-          {/* Card 3: Resolved */}
           <View style={[styles.statCard, { backgroundColor: "#c8e6c9" }]}>
             <MaterialIcons name="check-circle" size={24} color="#2e7d32" />
-            <Text style={styles.statCount}>
-              {/* 🔜 FUTURE: Replace mock with real data from backend */}
-              {stats.resolved}
-            </Text>
+            <Text style={styles.statCount}>{stats.resolved}</Text>
             <Text style={styles.statLabel}>Resolved</Text>
           </View>
         </View>
-        {/* 🔴 PRIORITY REPORTS SECTION */}
+
+        {/* 🔴 PRIORITY REPORTS */}
         <View style={styles.prioritySection}>
-          {/* Header: Title + Urgent Tag */}
           <View style={styles.priorityHeader}>
             <Text style={styles.sectionTitle}>Priority Reports</Text>
             <View style={styles.urgentTag}>
@@ -389,86 +256,66 @@ export default function PoliceDashboard() {
               <Text style={styles.urgentText}>Urgent</Text>
             </View>
           </View>
-
-          {/* Cards Container */}
           <View style={styles.priorityCardsContainer}>
-            {priorityReports.map((report) => (
-              <TouchableOpacity
-                key={report.id}
-                style={[
-                  styles.reportCard,
-                  {
-                    backgroundColor:
-                      report.priority === "HIGH" ? "#ffcdd2" : "#fff9c4",
-                  },
-                ]}
-                onPress={() =>
-                  router.push(`/police-screens/report-details?id=${report.id}`)
-                }
-              >
-                {/* Top Row: Priority Tag + Report ID + Location Pin */}
-                <View style={styles.reportTopRow}>
-                  <View
+            {priorityReports.length > 0 ? (
+              priorityReports.map((report) => (
+                <TouchableOpacity
+                  key={report.id}
+                  style={[
+                    styles.reportCard,
+                    { backgroundColor: report.priority === "HIGH" ? "#ffcdd2" : "#fff9c4" },
+                  ]}
+                  onPress={() => router.push(`/police-screens/report-details?id=${report.id}`)}
+                >
+                  <View style={styles.reportTopRow}>
+                    <View
+                      style={[
+                        styles.priorityTag,
+                        {
+                          backgroundColor: report.priority === "HIGH" ? "#ffcdd2" : "#fff9c4",
+                          borderColor: report.priority === "HIGH" ? "#e53935" : "#f57f17",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: report.priority === "HIGH" ? "#c62828" : "#f57f17",
+                          fontWeight: "bold",
+                          fontSize: 12,
+                        }}
+                      >
+                        {report.priority}
+                      </Text>
+                    </View>
+                    <View style={styles.reportIdContainer}>
+                      <Text style={styles.reportId}>#{report.id}</Text>
+                      <MaterialIcons name="location-on" size={16} color="#777" />
+                    </View>
+                  </View>
+                  <Text style={styles.reportTitle}>{report.title}</Text>
+                  <Text style={styles.reportMeta}>
+                    Reported by: {report.reporter} • {report.timeAgo}
+                  </Text>
+                  <View style={styles.locationRow}>
+                    <MaterialIcons name="location-on" size={16} color="#777" />
+                    <Text style={styles.reportLocation}>{report.location}</Text>
+                  </View>
+                  <TouchableOpacity
                     style={[
-                      styles.priorityTag,
-                      {
-                        backgroundColor:
-                          report.priority === "HIGH" ? "#ffcdd2" : "#fff9c4",
-                        borderColor:
-                          report.priority === "HIGH" ? "#e53935" : "#f57f17",
-                      },
+                      styles.actionButton,
+                      { backgroundColor: report.priority === "HIGH" ? "#e53935" : "#f57f17" },
                     ]}
                   >
-                    <Text
-                      style={{
-                        color:
-                          report.priority === "HIGH" ? "#c62828" : "#f57f17",
-                        fontWeight: "bold",
-                        fontSize: 12,
-                      }}
-                    >
-                      {report.priority}
+                    <Text style={styles.actionButtonText}>
+                      {report.priority === "HIGH" ? "Respond" : "Review"}
                     </Text>
-                  </View>
-                  <View style={styles.reportIdContainer}>
-                    <Text style={styles.reportId}>#{report.id}</Text>
-                    <MaterialIcons name="location-on" size={16} color="#777" />
-                  </View>
-                </View>
-
-                {/* Title */}
-                <Text style={styles.reportTitle}>{report.title}</Text>
-
-                {/* Meta: Reporter + Time */}
-                <Text style={styles.reportMeta}>
-                  Reported by: {report.reporter} • {report.timeAgo}
-                </Text>
-
-                {/* Location */}
-                <View style={styles.locationRow}>
-                  <MaterialIcons name="location-on" size={16} color="#777" />
-                  <Text style={styles.reportLocation}>{report.location}</Text>
-                </View>
-
-                {/* Action Button */}
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    {
-                      backgroundColor:
-                        report.priority === "HIGH" ? "#e53935" : "#f57f17",
-                    },
-                  ]}
-                >
-                  <Text style={styles.actionButtonText}>
-                    {report.priority === "HIGH" ? "Respond" : "Review"}
-                  </Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No priority reports</Text>
+            )}
           </View>
-
-          {/* 🔗 View All Button */}
           <TouchableOpacity
             style={styles.viewAllButton}
             onPress={() => router.push("/police/reports?filter=priority")}
@@ -477,112 +324,89 @@ export default function PoliceDashboard() {
             <MaterialIcons name="arrow-forward-ios" size={14} color="#1a73e8" />
           </TouchableOpacity>
         </View>
-        {/* 📜 RECENT REPORTS SECTION */}
+
+        {/* 📜 RECENT REPORTS */}
         <View style={styles.recentSection}>
           <Text style={styles.sectionTitle}>Recent Reports</Text>
-
           <View style={styles.recentCardsContainer}>
-            {recentReports.map((report) => (
-              <TouchableOpacity
-                key={report.id}
-                style={[
-                  styles.recentCard,
-                  {
-                    backgroundColor:
-                      report.status === "resolved" ? "#c8e6c9" : "#fff",
-                  },
-                ]}
-                onPress={() =>
-                  router.push(`/police-screens/report-details?id=${report.id}`)
-                }
-              >
-                {/* Left: Priority Tag + ID */}
-                <View style={styles.recentHeader}>
-                  <View
-                    style={[
-                      styles.recentPriorityTag,
-                      {
-                        backgroundColor:
-                          report.priority === "RESOLVED"
-                            ? "#c8e6c9"
-                            : report.priority === "LOW"
-                            ? "#f5f5f5"
-                            : "#ffcdd2",
-                        borderColor:
-                          report.priority === "RESOLVED"
-                            ? "#2e7d32"
-                            : report.priority === "LOW"
-                            ? "#ccc"
-                            : "#e53935",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          report.priority === "RESOLVED"
-                            ? "#2e7d32"
-                            : report.priority === "LOW"
-                            ? "#777"
-                            : "#c62828",
-                        fontWeight: "bold",
-                        fontSize: 12,
-                      }}
+            {recentReports.length > 0 ? (
+              recentReports.map((report) => (
+                <TouchableOpacity
+                  key={report.id}
+                  style={[
+                    styles.recentCard,
+                    { backgroundColor: report.status === "approved" ? "#c8e6c9" : "#fff" },
+                  ]}
+                  onPress={() => router.push(`/police-screens/report-details?id=${report.id}`)}
+                >
+                  <View style={styles.recentHeader}>
+                    <View
+                      style={[
+                        styles.recentPriorityTag,
+                        {
+                          backgroundColor:
+                            report.priority === "HIGH"
+                              ? "#ffcdd2"
+                              : report.priority === "LOW"
+                              ? "#f5f5f5"
+                              : "#c8e6c9",
+                          borderColor:
+                            report.priority === "HIGH"
+                              ? "#e53935"
+                              : report.priority === "LOW"
+                              ? "#ccc"
+                              : "#2e7d32",
+                        },
+                      ]}
                     >
-                      {report.priority}
+                      <Text
+                        style={{
+                          color:
+                            report.priority === "HIGH"
+                              ? "#c62828"
+                              : report.priority === "LOW"
+                              ? "#777"
+                              : "#2e7d32",
+                          fontWeight: "bold",
+                          fontSize: 12,
+                        }}
+                      >
+                        {report.priority}
+                      </Text>
+                    </View>
+                    <Text style={styles.recentId}>#{report.id}</Text>
+                  </View>
+                  <View style={styles.recentContent}>
+                    <Text style={styles.recentTitle}>{report.title}</Text>
+                    <Text style={styles.recentMeta}>
+                      Reported by: {report.reporter} • {report.timeAgo}
                     </Text>
                   </View>
-                  <Text style={styles.recentId}>#{report.id}</Text>
-                </View>
-
-                {/* Middle: Title + Reporter */}
-                <View style={styles.recentContent}>
-                  <Text style={styles.recentTitle}>{report.title}</Text>
-                  <Text style={styles.recentMeta}>
-                    Reported by: {report.reporter} • {report.timeAgo}
-                  </Text>
-                </View>
-
-                {/* Right: Icon + Arrow */}
-                <View style={styles.recentActions}>
-                  {report.status === "resolved" && (
-                    <MaterialIcons
-                      name="check-circle"
-                      size={20}
-                      color="#2e7d32"
-                    />
-                  )}
-                  <MaterialIcons
-                    name="keyboard-arrow-right"
-                    size={24}
-                    color="#777"
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.recentActions}>
+                    {report.status === "approved" && (
+                      <MaterialIcons name="check-circle" size={20} color="#2e7d32" />
+                    )}
+                    <MaterialIcons name="keyboard-arrow-right" size={24} color="#777" />
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No recent reports</Text>
+            )}
           </View>
-
-          {/* 🔗 View All Button */}
-          {totalReports > 3 && (
-            <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => router.push("/police/reports")}
-            >
-              <Text style={styles.viewAllText}>View All</Text>
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={14}
-                color="#1a73e8"
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push("/police/reports")}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <MaterialIcons name="arrow-forward-ios" size={14} color="#1a73e8" />
+          </TouchableOpacity>
         </View>
-        {/* ⚡ QUICK ACTIONS SECTION */}
+
+        {/* ⚡ QUICK ACTIONS */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-
           <View style={styles.actionsGrid}>
-            {/* 1. Assigned to Me */}
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push("/police/reports?filter=assigned")}
@@ -591,22 +415,11 @@ export default function PoliceDashboard() {
               <Text style={styles.actionLabel}>Assigned to Me</Text>
               <Text style={styles.actionSubtext}>View your active reports</Text>
             </TouchableOpacity>
-
-            {/* 2. Emergency SOS */}
-            <TouchableOpacity
-              style={[styles.actionCard, styles.emergencyCard]}
-              onPress={handleSOSPress}
-            >
+            <TouchableOpacity style={[styles.actionCard, styles.emergencyCard]} onPress={handleSOSPress}>
               <MaterialIcons name="emergency" size={28} color="#fff" />
-              <Text style={[styles.actionLabel, { color: "#fff" }]}>
-                Emergency
-              </Text>
-              <Text style={[styles.actionSubtext, { color: "#fff" }]}>
-                Call for backup
-              </Text>
+              <Text style={[styles.actionLabel, { color: "#fff" }]}>Emergency</Text>
+              <Text style={[styles.actionSubtext, { color: "#fff" }]}>Call for backup</Text>
             </TouchableOpacity>
-
-            {/* 3. New Report ✅ */}
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push("/police-screens/police-report-form")}
@@ -615,26 +428,18 @@ export default function PoliceDashboard() {
               <Text style={styles.actionLabel}>New Report</Text>
               <Text style={styles.actionSubtext}>Create incident report</Text>
             </TouchableOpacity>
-
-            {/* 4. Gather Evidence */}
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push("/police-screens/gather-evidence")}
             >
               <MaterialIcons name="photo-camera" size={28} color="#1a73e8" />
               <Text style={styles.actionLabel}>Gather Evidence</Text>
-              <Text style={styles.actionSubtext}>
-                Capture photos, audio, location
-              </Text>
+              <Text style={styles.actionSubtext}>Capture photos, audio, location</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 👇 DASHBOARD CONTENT GOES HERE */}
-        <View style={styles.content}>
-          <Text style={styles.title}>👮 Police Dashboard</Text>
-        </View>
-        {/* SOS CANCEL MODAL */}
+        {/* SOS MODAL */}
         <Modal visible={showSOSModal} transparent animationType="fade">
           <View style={styles.sosModalOverlay}>
             <View style={styles.sosModalContent}>
@@ -642,13 +447,8 @@ export default function PoliceDashboard() {
                 <MaterialIcons name="warning" size={40} color="#FF3B30" />
               </View>
               <Text style={styles.sosModalTitle}>Emergency SOS</Text>
-              <Text style={styles.sosModalText}>
-                SOS will be sent in {sosCountdown} seconds
-              </Text>
-              <TouchableOpacity
-                style={styles.cancelSOSButton}
-                onPress={cancelSOS}
-              >
+              <Text style={styles.sosModalText}>SOS will be sent in {sosCountdown} seconds</Text>
+              <TouchableOpacity style={styles.cancelSOSButton} onPress={cancelSOS}>
                 <Text style={styles.cancelSOSText}>CANCEL SOS</Text>
               </TouchableOpacity>
             </View>
@@ -660,6 +460,48 @@ export default function PoliceDashboard() {
 }
 
 const styles = StyleSheet.create({
+  // ... (keep all existing styles from your original file)
+  // Only add missing ones if needed — your original styles are complete
+  emptyText: {
+    textAlign: "center",
+    color: "#666",
+    fontStyle: "italic",
+    paddingVertical: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#ff3b30",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#007aff",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // Include all other styles from your original file...
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
@@ -668,11 +510,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#1a73e8", // Blue background like prototype
+    backgroundColor: "#1a73e8",
     paddingVertical: 15,
     paddingHorizontal: 20,
-    elevation: 3, // Android shadow
-    shadowColor: "#000", // iOS shadow
+    elevation: 3,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -682,7 +524,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarContainer: {
-    position: "relative", // Required for absolute positioning of status dot
+    position: "relative",
     width: 50,
     height: 50,
     marginRight: 10,
@@ -690,22 +532,22 @@ const styles = StyleSheet.create({
   avatar: {
     width: "100%",
     height: "100%",
-    borderRadius: 25, // Circular
+    borderRadius: 25,
     borderWidth: 2,
     borderColor: "#fff",
   },
   statusDot: {
     position: "absolute",
-    bottom: 0, // Stick to bottom edge
-    right: 0, // Stick to right edge
+    bottom: 0,
+    right: 0,
     width: 12,
     height: 12,
-    borderRadius: 6, // Circular
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#fff", // White border for contrast
-    zIndex: 1, // Ensure it appears above avatar
-    elevation: 2, // Android
-    shadowColor: "#000", // iOS
+    borderColor: "#fff",
+    zIndex: 1,
+    elevation: 2,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -725,12 +567,11 @@ const styles = StyleSheet.create({
   notificationIcon: {
     padding: 5,
   },
-  // STATUS BANNER STYLES
   statusBanner: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#e8f5e9", // Light green background
+    backgroundColor: "#e8f5e9",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
@@ -751,18 +592,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#2e7d32",
   },
-  activeTag: {
-    backgroundColor: "#c8e6c9",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 10,
-  },
-  activeTagText: {
-    fontSize: 12,
-    color: "#2e7d32",
-    fontWeight: "600",
-  },
   shiftInfo: {
     alignItems: "flex-end",
   },
@@ -775,7 +604,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1a73e8",
   },
-  // STATS CARDS STYLES
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -805,7 +633,6 @@ const styles = StyleSheet.create({
     color: "#555",
     textAlign: "center",
   },
-  // PRIORITY REPORTS SECTION
   prioritySection: {
     padding: 16,
   },
@@ -840,6 +667,7 @@ const styles = StyleSheet.create({
   reportCard: {
     borderRadius: 12,
     padding: 16,
+    marginBottom: 8,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -898,18 +726,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-  viewAllButton: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginTop: 12,
-  },
-  viewAllText: {
-    color: "#1a73e8",
-    fontWeight: "600",
-    marginRight: 6,
-  },
-  // RECENT REPORTS SECTION
   recentSection: {
     padding: 16,
   },
@@ -961,7 +777,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginLeft: 8,
   },
-  // QUICK ACTIONS SECTION
+  viewAllButton: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  viewAllText: {
+    color: "#1a73e8",
+    fontWeight: "600",
+    marginRight: 6,
+  },
   quickActionsSection: {
     padding: 16,
   },
@@ -998,7 +824,6 @@ const styles = StyleSheet.create({
     color: "#777",
     textAlign: "center",
   },
-  // SOS MODAL STYLES
   sosModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -1037,17 +862,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  content: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
   },
 });

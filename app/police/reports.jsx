@@ -1,542 +1,495 @@
 // Frontend/app/police/reports.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  Image,
-  Alert,
-  Modal,
+  TouchableOpacity,
   TextInput,
+  ScrollView,
+  Image,
+  Modal,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Filter, MapPin, Phone, Search, User, X } from "lucide-react-native";
+import { MaterialIcons } from '@expo/vector-icons'; // Add this import
+import ApiService from "../../services/apiService";
 
 export default function PoliceReports() {
   const { filter: initialFilter } = useLocalSearchParams();
+  const router = useRouter();
+
+  // TODO: Replace with actual officer info from context or props
+  const currentOfficer = { id: "officer123", name: "You" };
+
   const [activeTab, setActiveTab] = useState(initialFilter || "all");
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [quickFilter, setQuickFilter] = useState("all"); // 'all', 'high', 'assigned', 'unresolved', 'last24h'
+  const [quickFilter, setQuickFilter] = useState("all");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // 🔒 MOCK CURRENT OFFICER — Replace with real auth later
-  const currentOfficer = {
-    id: "officer_123",
-    name: "Officer Johnson",
-  };
-
-  // 🔴 MOCK REPORTS — Replace with real API call later
+  // Fetch reports from backend
   const fetchReports = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return [
-      {
-        id: "R2025-0089",
-        title: "Domestic Violence Report",
-        priority: "HIGH",
-        status: "pending",
-        reporter: "Sarah Martinez",
-        phone: "(555) 123-4567",
-        location: "1234 Oak Street, Apt 2B",
-        submittedAt: new Date(Date.now() - 15 * 60 * 1000), // 15 min ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: null,
-      },
-      {
-        id: "R2025-0087",
-        title: "Vehicle Theft",
-        priority: "MEDIUM",
-        status: "pending",
-        reporter: "John Davis",
-        phone: "(555) 987-6543",
-        location: "Downtown Parking Garage",
-        submittedAt: new Date(Date.now() - 32 * 60 * 1000), // 32 min ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: currentOfficer.id,
-      },
-      {
-        id: "R2025-0086",
-        title: "Noise Complaint",
-        priority: "LOW",
-        status: "inProgress",
-        reporter: "Maria Lopez",
-        phone: "(555) 456-7890",
-        location: "567 Pine Avenue",
-        submittedAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: currentOfficer.id,
-      },
-      {
-        id: "R2025-0084",
-        title: "Traffic Violation",
-        priority: "LOW",
-        status: "resolved",
-        reporter: "Jennifer Smith",
-        phone: "",
-        location: "Main St & 5th Ave",
-        submittedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: currentOfficer.id,
-      },
-      {
-        id: "R2025-0085",
-        title: "Lost Property",
-        priority: "LOW",
-        status: "pending",
-        reporter: "Robert Kim",
-        phone: "(555) 321-0987",
-        location: "Central Park",
-        submittedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: null,
-      },
-      {
-        id: "R2025-0083",
-        title: "Vandalism Report",
-        priority: "MEDIUM",
-        status: "resolved",
-        reporter: "Michael Brown",
-        phone: "",
-        location: "City Hall Building",
-        submittedAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-        avatar: "https://via.placeholder.com/40",
-        assignedOfficer: "officer_456",
-      },
-    ];
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await ApiService.getAllReports();
+
+      // Transform backend data to match frontend format
+      const formattedReports = data.map((report) => ({
+        id: report._id,
+        title:
+          report.description.substring(0, 50) +
+          (report.description.length > 50 ? "..." : ""),
+        priority: report.priority || "MEDIUM",
+        status: ApiService.mapStatus(report.status),
+        reporter: report.full_name || "Anonymous",
+        phone: report.contact_number || "",
+        location:
+          report.location?.address ||
+          `${report.location?.latitude}, ${report.location?.longitude}`,
+        submittedAt: new Date(report.createdAt),
+        avatar: "https://via.placeholder.com/40", // Default avatar
+        assignedOfficer: null, // Add officer assignment logic later
+      }));
+
+      setReports(formattedReports);
+      setFilteredReports(formattedReports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      setError("Failed to load reports. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // 🕒 Format time ago (e.g., "2m ago", "3d ago")
+  // Format relative time
   const formatTimeAgo = (date) => {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + "y ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + "mo ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + "d ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m ago";
-    return Math.floor(seconds) + "s ago";
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return "Just now";
   };
 
-  // 🔁 Load & filter reports
+  // Filter reports based on active tab and search query
   useEffect(() => {
-    const loadReports = async () => {
-      try {
-        // 👉 TODAY: Use mock
-        let allReports = await fetchReports();
-        // 🔜 FUTURE: Replace with real API
-        // const allReports = await apiService.getOfficerReports();
+    if (!reports.length) return;
 
-        // Add timeAgo to reports
-        allReports = allReports.map((report) => ({
-          ...report,
-          timeAgo: formatTimeAgo(report.submittedAt),
-        }));
+    let filtered = [...reports];
 
-        // Apply tab filter
-        let tabFiltered = allReports;
-        if (activeTab === "pending") {
-          tabFiltered = allReports.filter((r) => r.status === "pending");
-        } else if (activeTab === "inProgress") {
-          tabFiltered = allReports.filter((r) => r.status === "inProgress");
-        } else if (activeTab === "resolved") {
-          tabFiltered = allReports.filter((r) => r.status === "resolved");
-        } else if (activeTab === "assigned") {
-          tabFiltered = allReports.filter(
-            (r) => r.assignedOfficer === currentOfficer.id
-          );
-        }
+    // Apply quick filter
+    switch (quickFilter) {
+      case "high":
+        filtered = filtered.filter((report) => report.priority === "HIGH");
+        break;
+      case "assigned":
+        filtered = filtered.filter((report) => report.assignedOfficer);
+        break;
+      case "unresolved":
+        filtered = filtered.filter((report) => report.status !== "resolved");
+        break;
+      case "last24h":
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        filtered = filtered.filter((report) => report.submittedAt > dayAgo);
+        break;
+    }
 
-        // Apply quick filter
-        let quickFiltered = tabFiltered;
-        if (quickFilter === "high") {
-          quickFiltered = tabFiltered.filter((r) => r.priority === "HIGH");
-        } else if (quickFilter === "assigned") {
-          quickFiltered = tabFiltered.filter(
-            (r) => r.assignedOfficer === currentOfficer.id
-          );
-        } else if (quickFilter === "unresolved") {
-          quickFiltered = tabFiltered.filter((r) => r.status !== "resolved");
-        } else if (quickFilter === "last24h") {
-          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          quickFiltered = tabFiltered.filter(
-            (r) => r.submittedAt > twentyFourHoursAgo
-          );
-        }
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (report) =>
+          report.title.toLowerCase().includes(query) ||
+          report.location.toLowerCase().includes(query) ||
+          report.reporter.toLowerCase().includes(query)
+      );
+    }
 
-        // Apply search
-        let searchFiltered = quickFiltered;
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          searchFiltered = quickFiltered.filter(
-            (r) =>
-              r.id.toLowerCase().includes(query) ||
-              r.title.toLowerCase().includes(query) ||
-              r.reporter.toLowerCase().includes(query)
-          );
-        }
+    setFilteredReports(filtered);
+  }, [activeTab, quickFilter, searchQuery, reports]);
 
-        // Sort: HIGH > MEDIUM > LOW; then newest first
-        const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-        searchFiltered.sort((a, b) => {
-          return (
-            priorityOrder[a.priority] - priorityOrder[b.priority] ||
-            b.submittedAt - a.submittedAt
-          );
-        });
+  // Initial fetch
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
-        setReports(allReports);
-        setFilteredReports(searchFiltered);
-      } catch (error) {
-        console.error("Failed to load reports:", error);
-        Alert.alert("Error", "Failed to load reports");
+  // Update the handleReportPress function
+  const handleReportPress = (report) => {
+    // Navigate to report details with all necessary data
+    router.push({
+      pathname: "/police-screens/report-details",
+      params: {
+        id: report.id,
+        title: report.title,
+        priority: report.priority,
+        status: report.status,
+        reporter: report.reporter,
+        phone: report.phone,
+        location: report.location,
+        description: report.description || "",
+        createdAt: formatTimeAgo(report.submittedAt),
+        assignedOfficer: report.assignedOfficer || "Not assigned"
       }
-    };
-    loadReports();
-  }, [activeTab, quickFilter, searchQuery]);
-
-  const handleReportPress = (id) => {
-    router.push(`/police-screens/report-details?id=${id}`);
+    });
   };
 
-  const applyQuickFilter = (filter) => {
-    setQuickFilter(filter);
+  // Render loading state
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text>Loading reports...</Text>
+      </View>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchReports}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Function to apply quick filter and close modal
+  const applyQuickFilter = (filterKey) => {
+    setQuickFilter(filterKey);
     setShowFilterModal(false);
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#f5f5f5" }}
-      edges={["top", "left", "right"]}
-    >
-      <View style={styles.container}>
-        {/* HEADER SECTION */}
-        <View style={styles.header}>
-          {isSearching ? (
-            // Search Mode
-            <>
-              <TouchableOpacity onPress={() => setIsSearching(false)}>
-                <MaterialIcons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
-              <TextInput
-                style={styles.searchInputInHeader}
-                placeholder="Search reports..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-                placeholderTextColor="#ccc"
-                selectionColor="#fff"
-              />
-              <TouchableOpacity onPress={() => setShowFilterModal(true)}>
-                <MaterialIcons name="filter-list" size={24} color="white" />
-              </TouchableOpacity>
-            </>
-          ) : (
-            // Normal Header Mode
-            <>
+    <View style={styles.container}>
+      {/* HEADER SECTION */}
+      <View style={styles.header}>
+        {isSearching ? (
+          // Search Mode
+          <>
+            <TouchableOpacity onPress={() => setIsSearching(false)}>
+              <MaterialIcons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.searchInputInHeader}
+              placeholder="Search reports..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              placeholderTextColor="#ccc"
+              selectionColor="#fff"
+            />
+            <TouchableOpacity onPress={() => setShowFilterModal(true)}>
+              <MaterialIcons name="filter-list" size={24} color="white" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          // Normal Header Mode
+          <>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.back()}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Reports Dashboard</Text>
+            <View style={styles.headerIcons}>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={() => router.back()}
+                onPress={() => setIsSearching(true)}
               >
-                <MaterialIcons name="arrow-back" size={24} color="white" />
+                <MaterialIcons name="search" size={24} color="white" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Reports Dashboard</Text>
-              <View style={styles.headerIcons}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setIsSearching(true)}
-                >
-                  <MaterialIcons name="search" size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setShowFilterModal(true)}
-                >
-                  <MaterialIcons name="filter-list" size={24} color="white" />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* FILTER TABS */}
-        <View style={styles.filterTabs}>
-          {[
-            { key: "all", label: "All Reports" },
-            { key: "assigned", label: "Assigned to Me" },
-            { key: "pending", label: "Pending" },
-            { key: "inProgress", label: "In Progress" },
-            { key: "resolved", label: "Resolved" },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.filterTab,
-                activeTab === tab.key && styles.activeFilterTab,
-              ]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text
-                style={[
-                  styles.filterTabText,
-                  activeTab === tab.key && styles.activeFilterTabText,
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* ACTIVE QUICK FILTER DISPLAY */}
-        {(quickFilter !== "all" || searchQuery) && (
-          <View style={styles.activeFilterDisplay}>
-            <Text style={styles.activeFilterText}>
-              {searchQuery ? `Search: "${searchQuery}"` : ""}
-              {searchQuery && quickFilter !== "all" ? " • " : ""}
-              {quickFilter === "high"
-                ? "High Priority Only"
-                : quickFilter === "assigned"
-                ? "Assigned to Me"
-                : quickFilter === "unresolved"
-                ? "Unresolved"
-                : quickFilter === "last24h"
-                ? "Last 24 Hours"
-                : ""}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setQuickFilter("all");
-                setSearchQuery("");
-              }}
-            >
-              <MaterialIcons name="close" size={16} color="#1a73e8" />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* REPORTS LIST */}
-        <ScrollView
-          style={styles.reportsContainer}
-          contentContainerStyle={{ paddingBottom: 32 }} // 👈 Ensures gap at the bottom
-        >
-          {filteredReports.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No reports found</Text>
-            </View>
-          ) : (
-            filteredReports.map((report) => (
               <TouchableOpacity
-                key={report.id}
-                style={[
-                  styles.reportCard,
-                  {
-                    backgroundColor:
-                      report.status === "resolved" ? "#c8e6c9" : "#fff",
-                  },
-                ]}
-                onPress={() => handleReportPress(report.id)}
+                style={styles.iconButton}
+                onPress={() => setShowFilterModal(true)}
               >
-                {/* Top Row: Priority + Status + ID + Time Ago */}
-                <View style={styles.reportTopRow}>
-                  {/* Priority Tag */}
-                  <View
-                    style={[
-                      styles.priorityTag,
-                      {
-                        backgroundColor:
-                          report.priority === "HIGH"
-                            ? "#ffcdd2"
-                            : report.priority === "MEDIUM"
-                            ? "#fff9c4"
-                            : "#f5f5f5",
-                        borderColor:
-                          report.priority === "HIGH"
-                            ? "#e53935"
-                            : report.priority === "MEDIUM"
-                            ? "#f57f17"
-                            : "#ccc",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          report.priority === "HIGH"
-                            ? "#c62828"
-                            : report.priority === "MEDIUM"
-                            ? "#f57f17"
-                            : "#777",
-                        fontWeight: "bold",
-                        fontSize: 12,
-                      }}
-                    >
-                      {report.priority}
-                    </Text>
-                  </View>
-                  {/* Status Tag */}
-                  <View
-                    style={[
-                      styles.statusTag,
-                      {
-                        backgroundColor:
-                          report.status === "pending"
-                            ? "#ffcdd2"
-                            : report.status === "inProgress"
-                            ? "#fff9c4"
-                            : "#c8e6c9",
-                        borderColor:
-                          report.status === "pending"
-                            ? "#e53935"
-                            : report.status === "inProgress"
-                            ? "#f57f17"
-                            : "#2e7d32",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          report.status === "pending"
-                            ? "#c62828"
-                            : report.status === "inProgress"
-                            ? "#f57f17"
-                            : "#2e7d32",
-                        fontWeight: "bold",
-                        fontSize: 12,
-                      }}
-                    >
-                      {report.status === "pending"
-                        ? "Pending"
-                        : report.status === "inProgress"
-                        ? "In Progress"
-                        : "Resolved"}
-                    </Text>
-                  </View>
-                  <Text style={styles.reportId}>#{report.id}</Text>
-                  <Text style={styles.timeAgo}>{report.timeAgo}</Text>
-                </View>
+                <MaterialIcons name="filter-list" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
 
-                {/* Title */}
-                <Text style={styles.reportTitle}>{report.title}</Text>
+      {/* FILTER TABS */}
+      <View style={styles.filterTabs}>
+        {[
+          { key: "all", label: "All Reports" },
+          { key: "assigned", label: "Assigned to Me" },
+          { key: "pending", label: "Pending" },
+          { key: "inProgress", label: "In Progress" },
+          { key: "resolved", label: "Resolved" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.filterTab,
+              activeTab === tab.key && styles.activeFilterTab,
+            ]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                activeTab === tab.key && styles.activeFilterTabText,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-                {/* Location */}
-                <View style={styles.locationRow}>
-                  <MaterialIcons name="location-on" size={16} color="#777" />
-                  <Text style={styles.reportLocation}>{report.location}</Text>
-                </View>
+      {/* ACTIVE QUICK FILTER DISPLAY */}
+      {(quickFilter !== "all" || searchQuery) && (
+        <View style={styles.activeFilterDisplay}>
+          <Text style={styles.activeFilterText}>
+            {searchQuery ? `Search: "${searchQuery}"` : ""}
+            {searchQuery && quickFilter !== "all" ? " • " : ""}
+            {quickFilter === "high"
+              ? "High Priority Only"
+              : quickFilter === "assigned"
+              ? "Assigned to Me"
+              : quickFilter === "unresolved"
+              ? "Unresolved"
+              : quickFilter === "last24h"
+              ? "Last 24 Hours"
+              : ""}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setQuickFilter("all");
+              setSearchQuery("");
+            }}
+          >
+            <MaterialIcons name="close" size={16} color="#1a73e8" />
+          </TouchableOpacity>
+        </View>
+      )}
 
-                {/* Reporter Info */}
-                <View style={styles.reporterRow}>
-                  <Image
-                    source={{ uri: report.avatar }}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.reporterInfo}>
-                    <Text style={styles.reporterName}>{report.reporter}</Text>
-                    {report.phone && (
-                      <Text style={styles.reporterPhone}>{report.phone}</Text>
-                    )}
-                  </View>
-                </View>
-
-                {/* Assignment Status */}
-                <View style={styles.statusNote}>
-                  {report.assignedOfficer ? (
-                    <>
-                      <MaterialIcons name="person" size={16} color="#2e7d32" />
-                      <Text style={styles.statusText}>
-                        {report.assignedOfficer === currentOfficer.id
-                          ? `Assigned to ${currentOfficer.name}`
-                          : "Assigned to another officer"}
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <MaterialIcons
-                        name="access-time"
-                        size={16}
-                        color="#777"
-                      />
-                      <Text style={styles.statusText}>Awaiting assignment</Text>
-                    </>
-                  )}
-                </View>
-
-                {/* Action Button */}
-                <TouchableOpacity
+      {/* REPORTS LIST */}
+      <ScrollView
+        style={styles.reportsContainer}
+        contentContainerStyle={{ paddingBottom: 32 }} // 👈 Ensures gap at the bottom
+      >
+        {filteredReports.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No reports found</Text>
+          </View>
+        ) : (
+          filteredReports.map((report) => (
+            <TouchableOpacity
+              key={report.id}
+              style={[
+                styles.reportCard,
+                {
+                  backgroundColor:
+                    report.status === "resolved" ? "#c8e6c9" : "#fff",
+                },
+              ]}
+              onPress={() => handleReportPress(report)} // Pass the full report object
+            >
+              {/* Top Row: Priority + Status + ID + Time Ago */}
+              <View style={styles.reportTopRow}>
+                {/* Priority Tag */}
+                <View
                   style={[
-                    styles.actionButton,
+                    styles.priorityTag,
                     {
                       backgroundColor:
                         report.priority === "HIGH"
+                          ? "#ffcdd2"
+                          : report.priority === "MEDIUM"
+                          ? "#fff9c4"
+                          : "#f5f5f5",
+                      borderColor:
+                        report.priority === "HIGH"
                           ? "#e53935"
-                          : report.assignedOfficer === currentOfficer.id
-                          ? "#8bc34a"
-                          : "#6c5ce7",
+                          : report.priority === "MEDIUM"
+                          ? "#f57f17"
+                          : "#ccc",
                     },
                   ]}
                 >
-                  <Text style={styles.actionButtonText}>
-                    {report.priority === "HIGH"
-                      ? "Respond"
-                      : report.assignedOfficer === currentOfficer.id
-                      ? "See Details"
-                      : "Assign"}
+                  <Text
+                    style={{
+                      color:
+                        report.priority === "HIGH"
+                          ? "#c62828"
+                          : report.priority === "MEDIUM"
+                          ? "#f57f17"
+                          : "#777",
+                      fontWeight: "bold",
+                      fontSize: 12,
+                    }}
+                  >
+                    {report.priority}
                   </Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
-
-        {/* QUICK FILTER MODAL */}
-        <Modal
-          visible={showFilterModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowFilterModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Quick Filters</Text>
-              {[
-                { key: "all", label: "All Reports" },
-                { key: "high", label: "High Priority Only" },
-                { key: "assigned", label: "Assigned to Me" },
-                { key: "unresolved", label: "Unresolved" },
-                { key: "last24h", label: "Last 24 Hours" },
-              ].map((filter) => (
-                <TouchableOpacity
-                  key={filter.key}
-                  style={styles.modalOption}
-                  onPress={() => applyQuickFilter(filter.key)}
+                </View>
+                {/* Status Tag */}
+                <View
+                  style={[
+                    styles.statusTag,
+                    {
+                      backgroundColor:
+                        report.status === "pending"
+                          ? "#ffcdd2"
+                          : report.status === "inProgress"
+                          ? "#fff9c4"
+                          : "#c8e6c9",
+                      borderColor:
+                        report.status === "pending"
+                          ? "#e53935"
+                          : report.status === "inProgress"
+                          ? "#f57f17"
+                          : "#2e7d32",
+                    },
+                  ]}
                 >
-                  <Text style={styles.modalOptionText}>{filter.label}</Text>
-                  {quickFilter === filter.key && (
-                    <MaterialIcons name="check" size={20} color="#1a73e8" />
+                  <Text
+                    style={{
+                      color:
+                        report.status === "pending"
+                          ? "#c62828"
+                          : report.status === "inProgress"
+                          ? "#f57f17"
+                          : "#2e7d32",
+                      fontWeight: "bold",
+                      fontSize: 12,
+                    }}
+                  >
+                    {report.status === "pending"
+                      ? "Pending"
+                      : report.status === "inProgress"
+                      ? "In Progress"
+                      : "Resolved"}
+                  </Text>
+                </View>
+                <Text style={styles.reportId}>#{report.id}</Text>
+                <Text style={styles.timeAgo}>{report.timeAgo}</Text>
+              </View>
+
+              {/* Title */}
+              <Text style={styles.reportTitle}>{report.title}</Text>
+
+              {/* Location */}
+              <View style={styles.locationRow}>
+                <MaterialIcons name="location-on" size={16} color="#777" />
+                <Text style={styles.reportLocation}>{report.location}</Text>
+              </View>
+
+              {/* Reporter Info */}
+              <View style={styles.reporterRow}>
+                <Image
+                  source={{ uri: report.avatar }}
+                  style={styles.avatar}
+                />
+                <View style={styles.reporterInfo}>
+                  <Text style={styles.reporterName}>{report.reporter}</Text>
+                  {report.phone && (
+                    <Text style={styles.reporterPhone}>{report.phone}</Text>
                   )}
-                </TouchableOpacity>
-              ))}
+                </View>
+              </View>
+
+              {/* Assignment Status */}
+              <View style={styles.statusNote}>
+                {report.assignedOfficer ? (
+                  <>
+                    <MaterialIcons name="person" size={16} color="#2e7d32" />
+                    <Text style={styles.statusText}>
+                      {report.assignedOfficer === currentOfficer.id
+                        ? `Assigned to ${currentOfficer.name}`
+                        : "Assigned to another officer"}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialIcons
+                      name="access-time"
+                      size={16}
+                      color="#777"
+                    />
+                    <Text style={styles.statusText}>Awaiting assignment</Text>
+                  </>
+                )}
+              </View>
+
+              {/* Action Button */}
               <TouchableOpacity
-                style={styles.closeModalButton}
-                onPress={() => setShowFilterModal(false)}
+                style={[
+                  styles.actionButton,
+                  {
+                    backgroundColor:
+                      report.priority === "HIGH"
+                        ? "#e53935"
+                        : report.assignedOfficer === currentOfficer.id
+                        ? "#8bc34a"
+                        : "#6c5ce7",
+                  },
+                ]}
               >
-                <Text style={styles.closeModalText}>Close</Text>
+                <Text style={styles.actionButtonText}>
+                  {report.priority === "HIGH"
+                    ? "Respond"
+                    : report.assignedOfficer === currentOfficer.id
+                    ? "See Details"
+                    : "Assign"}
+                </Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      {/* QUICK FILTER MODAL */}
+      <Modal
+        visible={showFilterModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Quick Filters</Text>
+            {[
+              { key: "all", label: "All Reports" },
+              { key: "high", label: "High Priority Only" },
+              { key: "assigned", label: "Assigned to Me" },
+              { key: "unresolved", label: "Unresolved" },
+              { key: "last24h", label: "Last 24 Hours" },
+            ].map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
+                style={styles.modalOption}
+                onPress={() => applyQuickFilter(filter.key)}
+              >
+                <Text style={styles.modalOptionText}>{filter.label}</Text>
+                {quickFilter === filter.key && (
+                  <MaterialIcons name="check" size={20} color="#1a73e8" />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.closeModalButton}
+              onPress={() => setShowFilterModal(false)}
+            >
+              <Text style={styles.closeModalText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      </View>
-    </SafeAreaView>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -768,5 +721,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1a73e8",
     fontWeight: "bold",
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#ff3b30",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#007aff",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

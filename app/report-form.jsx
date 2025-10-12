@@ -60,6 +60,9 @@ export default function ReportForm() {
   const [results, setResults] = useState([]);
   const [locationMethod, setLocationMethod] = useState(null);
 
+  // Priority state
+  const [selectedPriority, setSelectedPriority] = useState("Low");
+
   // Scroll ref for keyboard handling
   const scrollViewRef = useRef(null);
 
@@ -77,7 +80,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.9:3000/api/reports/create";
+  const API_URL = "http://10.92.81.249:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
@@ -651,6 +654,54 @@ export default function ReportForm() {
     setMedia(media.filter((_, i) => i !== index));
   };
 
+  // Priority selector component
+  const PrioritySelector = ({ selected, onSelect }) => {
+    const priorities = ["Low", "Medium", "High"];
+
+    return (
+      <View style={styles.priorityContainer}>
+        <Text style={styles.label}>Priority Level</Text>
+        <View style={styles.priorityButtons}>
+          {priorities.map((priority) => (
+            <TouchableOpacity
+              key={priority}
+              style={[
+                styles.priorityButton,
+                selected === priority && styles.selectedPriority,
+                {
+                  backgroundColor: getPriorityColor(
+                    priority,
+                    selected === priority
+                  ),
+                },
+              ]}
+              onPress={() => onSelect(priority)}
+            >
+              <Text
+                style={[
+                  styles.priorityText,
+                  selected === priority && styles.selectedPriorityText,
+                ]}
+              >
+                {priority}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // Get priority color based on selection
+  const getPriorityColor = (priority, isSelected) => {
+    const colors = {
+      Low: isSelected ? "#4CAF50" : "#E8F5E9",
+      Medium: isSelected ? "#FFC107" : "#FFF8E1",
+      High: isSelected ? "#F44336" : "#FFEBEE",
+    };
+    return colors[priority];
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
     if (!description) {
@@ -700,6 +751,9 @@ export default function ReportForm() {
           name: `evidence_${i}.${fileExt}`,
         });
       });
+
+      // Append priority to form data
+      formData.append("priority", selectedPriority);
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -1118,6 +1172,14 @@ export default function ReportForm() {
           />
         </View>
 
+        {/* Priority Selector */}
+        <View style={styles.section}>
+          <PrioritySelector
+            selected={selectedPriority}
+            onSelect={setSelectedPriority}
+          />
+        </View>
+
         {/* Submit */}
         <TouchableOpacity
           style={[
@@ -1529,4 +1591,40 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { backgroundColor: "#A0A0A0" },
   submitText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  priorityContainer: {
+    marginBottom: 20,
+  },
+  priorityButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  priorityButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  selectedPriority: {
+    borderColor: "#000",
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  selectedPriorityText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
 });

@@ -564,7 +564,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await axios.get("http://172.20.10.9:3000/api/notifications");
+        const res = await axios.get("http://10.92.81.249:3000/api/notifications");
         setNotifications(res.data.data);
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -574,7 +574,7 @@ export default function Dashboard() {
     fetchNotifications();
 
     // Socket.IO connection
-    const socket = io("http://172.20.10.9:3000");
+    const socket = io("http://10.92.81.249:3000");
 
     socket.on("connect", () => {
       console.log("Connected to Socket.IO server:", socket.id);
@@ -593,7 +593,7 @@ export default function Dashboard() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await axios.patch(`http://172.20.10.9:3000/api/notifications/${id}/read`);
+      const res = await axios.patch(`http://10.92.81.249:3000/api/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? res.data.data : n))
       );

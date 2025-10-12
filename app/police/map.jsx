@@ -1,23 +1,91 @@
 // Frontend/app/police/map.jsx
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
+  TouchableOpacity,
   Dimensions,
-  Alert,
   Platform,
+  Linking,
+  Alert
 } from "react-native";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import MapView, { Marker } from "react-native-maps";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-import * as Linking from "expo-linking";
+import { MaterialIcons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ApiService from "../../services/apiService";
+
+// Add these helper functions at the top of your file
+const CLUSTER_RADIUS = 50000; // meters
+const TIME_WINDOW = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+// Function to calculate distance between two points in meters
+const calculateDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+// Function to find report clusters
+const findReportClusters = (reports) => {
+  const now = new Date();
+  const clusters = [];
+
+  // Filter reports within time window
+  const recentReports = reports.filter(report => 
+    now - new Date(report.submittedAt) <= TIME_WINDOW
+  );
+
+  recentReports.forEach(report => {
+    let foundCluster = false;
+
+    // Check existing clusters
+    for (const cluster of clusters) {
+      const distance = calculateDistanceInMeters(
+        cluster.center.latitude,
+        cluster.center.longitude,
+        report.latitude,
+        report.longitude
+      );
+
+      if (distance <= CLUSTER_RADIUS) {
+        cluster.reports.push(report);
+        // Recalculate cluster center
+        cluster.center = {
+          latitude: cluster.reports.reduce((sum, r) => sum + r.latitude, 0) / cluster.reports.length,
+          longitude: cluster.reports.reduce((sum, r) => sum + r.longitude, 0) / cluster.reports.length
+        };
+        foundCluster = true;
+        break;
+      }
+    }
+
+    // Create new cluster if not found in existing ones
+    if (!foundCluster) {
+      clusters.push({
+        center: {
+          latitude: report.latitude,
+          longitude: report.longitude
+        },
+        reports: [report]
+      });
+    }
+  });
+
+  // Return only clusters with 3 or more reports
+  return clusters.filter(cluster => cluster.reports.length >= 3);
+};
 
 // 📏 Calculate straight-line distance (km)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -63,94 +131,84 @@ export default function PoliceMapScreen() {
     longitudeDelta: 0.05,
   });
   const [selectedReport, setSelectedReport] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [clusters, setClusters] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // 🔹 MOCK REPORTS — Replace with real API later
-  const mockAllReports = [
-    {
-      id: "R2025-0089",
-      title: "Domestic Violence",
-      priority: "HIGH",
-      status: "pending",
-      assignedOfficer: "officer_4729",
-      latitude: 6.93,
-      longitude: 79.865,
-    },
-    {
-      id: "R2025-0087",
-      title: "Vehicle Theft",
-      priority: "MED",
-      status: "inProgress",
-      assignedOfficer: "officer_4729",
-      latitude: 6.925,
-      longitude: 79.855,
-    },
-    {
-      id: "R2025-0086",
-      title: "Noise Complaint",
-      priority: "LOW",
-      status: "resolved",
-      assignedOfficer: null,
-      latitude: 6.935,
-      longitude: 79.87,
-    },
-    {
-      id: "R2025-0085",
-      title: "Suspicious Activity",
-      priority: "MED",
-      status: "pending",
-      assignedOfficer: "officer_4730",
-      latitude: 6.92,
-      longitude: 79.85,
-    },
-    {
-      id: "R2025-0084",
-      title: "Burglary",
-      priority: "HIGH",
-      status: "inProgress",
-      assignedOfficer: "officer_4731",
-      latitude: 6.93,
-      longitude: 79.87,
-    },
-    {
-      id: "R2025-0083",
-      title: "Assault",
-      priority: "HIGH",
-      status: "inProgress",
-      assignedOfficer: "officer_4732",
-      latitude: 6.94,
-      longitude: 79.88,
-    },
-  ];
+  // Fetch reports from backend
+  const fetchReports = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await ApiService.getAllReports();
 
-  const currentOfficerId = "officer_4729";
+      // Transform reports to include coordinates
+      const formattedReports = data.map((report) => ({
+        id: report._id,
+        title:
+          report.description.substring(0, 50) +
+          (report.description.length > 50 ? "..." : ""),
+        priority: report.priority || "MEDIUM",
+        status: ApiService.mapStatus(report.status),
+        assignedOfficer: null, // Add officer assignment logic later
+        latitude: report.location?.latitude,
+        longitude: report.location?.longitude,
+        submittedAt: new Date(report.createdAt)
+      }));
 
-  // 🔹 Filter reports
-  const filteredReports = mockAllReports.filter((report) => {
-    if (activeFilter === "active") {
-      return report.status === "pending" || report.status === "inProgress";
+      setReports(formattedReports);
+      
+      // Find and set clusters
+      const reportClusters = findReportClusters(formattedReports);
+      setClusters(reportClusters);
+      
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      setError("Failed to load reports");
+    } finally {
+      setIsLoading(false);
     }
-    if (activeFilter === "assigned") {
-      return report.assignedOfficer === currentOfficerId;
-    }
-    return true;
-  });
+  };
 
-  // 🔹 Add distance & drive time to reports
-  const reportsWithDistance = filteredReports.map((report) => {
-    if (!officerLocation) return { ...report, distance: "—", driveTime: "—" };
-    const distanceKm = calculateDistance(
-      officerLocation.latitude,
-      officerLocation.longitude,
-      report.latitude,
-      report.longitude
-    );
-    const distance =
-      distanceKm < 1
-        ? `${Math.round(distanceKm * 1000)} m`
-        : `${distanceKm.toFixed(1)} km`;
-    const driveTime = `${estimateDriveTime(distanceKm)} min`;
-    return { ...report, distance, driveTime };
-  });
+  // Filter reports based on active filter
+  const filteredReports = useMemo(() => {
+    if (!reports.length) return [];
+
+    switch (activeFilter) {
+      case "active":
+        return reports.filter(
+          (report) => report.status === "pending" || report.status === "inProgress"
+        );
+      case "assigned":
+        return reports.filter((report) => report.assignedOfficer);
+      default:
+        return reports;
+    }
+  }, [reports, activeFilter]);
+
+  // Add distance & drive time to reports when officer location is available
+  const reportsWithDistance = useMemo(() => {
+    if (!officerLocation) return filteredReports;
+
+    return filteredReports.map((report) => {
+      const distanceKm = calculateDistance(
+        officerLocation.latitude,
+        officerLocation.longitude,
+        report.latitude,
+        report.longitude
+      );
+
+      return {
+        ...report,
+        distance:
+          distanceKm < 1
+            ? `${Math.round(distanceKm * 1000)} m`
+            : `${distanceKm.toFixed(1)} km`,
+        driveTime: `${estimateDriveTime(distanceKm)} min`,
+      };
+    });
+  }, [filteredReports, officerLocation]);
 
   // 🔹 Get officer location
   useEffect(() => {
@@ -168,6 +226,11 @@ export default function PoliceMapScreen() {
         setMapRegion({ ...coords, latitudeDelta: 0.05, longitudeDelta: 0.05 });
       }
     })();
+  }, []);
+
+  // Initial fetch of reports
+  useEffect(() => {
+    fetchReports();
   }, []);
 
   // 🔹 Open native maps
@@ -188,20 +251,7 @@ export default function PoliceMapScreen() {
 
   // 🔹 Handle pin tap
   const handlePinPress = (report) => {
-    if (officerLocation) {
-      const distanceKm = calculateDistance(
-        officerLocation.latitude,
-        officerLocation.longitude,
-        report.latitude,
-        report.longitude
-      );
-      const distance =
-        distanceKm < 1
-          ? `${Math.round(distanceKm * 1000)} m`
-          : `${distanceKm.toFixed(1)} km`;
-      const driveTime = `${estimateDriveTime(distanceKm)} min`;
-      setSelectedReport({ ...report, distance, driveTime });
-    }
+    setSelectedReport(report);
   };
 
   // 🔹 Handle report card press
@@ -216,15 +266,13 @@ export default function PoliceMapScreen() {
 
   // 🔹 Get pin color
   const getPinColor = (priority) => {
-    switch (priority) {
+    switch (priority?.toUpperCase()) {
       case "HIGH":
-        return "#FF0000";
-      case "MED":
-        return "#FFA500";
-      case "LOW":
-        return "#008000";
+        return "#FF3B30";
+      case "MEDIUM":
+        return "#FF9500";
       default:
-        return "#808080";
+        return "#34C759";
     }
   };
 
@@ -232,13 +280,13 @@ export default function PoliceMapScreen() {
   const centerToOfficer = () => {
     if (officerLocation) {
       mapRef.current?.animateToRegion({
-        latitude: officerLocation.latitude,
-        longitude: officerLocation.longitude,
+        ...officerLocation,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       });
     }
   };
+
   //render
   const renderItem = useCallback(
     (item) => (
@@ -278,8 +326,12 @@ export default function PoliceMapScreen() {
     console.log("Bottom sheet index:", index);
   }, []);
 
-  return (
-    <GestureHandlerRootView style={styles.container}>
+  // TODO: Replace with actual officer ID from authentication/user context
+  const currentOfficerId = null;
+  
+    return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
       {/* Status Bar Spacer */}
       <View style={styles.statusBarSpacer} />
 
@@ -347,6 +399,7 @@ export default function PoliceMapScreen() {
         style={[styles.map, { height: mapHeight }]}
         initialRegion={mapRegion}
       >
+        {/* Render officer location */}
         {officerLocation && (
           <Marker
             coordinate={officerLocation}
@@ -354,6 +407,8 @@ export default function PoliceMapScreen() {
             title="Your Location"
           />
         )}
+
+        {/* Render report markers */}
         {reportsWithDistance.map((report) => (
           <Marker
             key={report.id}
@@ -364,6 +419,18 @@ export default function PoliceMapScreen() {
             pinColor={getPinColor(report.priority)}
             title={report.title}
             onPress={() => handlePinPress(report)}
+          />
+        ))}
+
+        {/* Render cluster circles */}
+        {clusters.map((cluster, index) => (
+          <Circle
+            key={`cluster-${index}`}
+            center={cluster.center}
+            radius={CLUSTER_RADIUS}
+            fillColor="rgba(255, 0, 0, 0.2)"
+            strokeColor="rgba(255, 0, 0, 0.5)"
+            strokeWidth={2}
           />
         ))}
       </MapView>
@@ -434,7 +501,7 @@ export default function PoliceMapScreen() {
       {/* Bottom Sheet */}
       <BottomSheet
         ref={bottomSheetRef}
-        index={1}
+        index={0}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         onChange={handleSheetChanges}
@@ -453,7 +520,8 @@ export default function PoliceMapScreen() {
           {reportsWithDistance.map(renderItem)}
         </BottomSheetScrollView>
       </BottomSheet>
-    </GestureHandlerRootView>
+    </View>
+    </SafeAreaView>
   );
 }
 
