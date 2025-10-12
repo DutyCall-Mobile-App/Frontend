@@ -86,7 +86,7 @@ export default function LoginScreen() {
 
           // Route by role
           if (role === 'policeman') {
-            router.replace('/police-dashboard');
+            router.replace('/police');
           } else {
             router.replace('/'); // home tab
           }
@@ -135,7 +135,7 @@ export default function LoginScreen() {
       // Route by role
       setTimeout(() => {
         if (role === 'policeman') {
-          router.replace('/police-dashboard');
+          router.replace('/police');
         } else {
           router.replace('/'); // points to (tabs)/index
         }

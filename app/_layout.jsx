@@ -4,6 +4,7 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from "./context/ThemeContext";
 
 const PUBLIC_ROUTES = new Set(["/login", "/register", "/onboard"]);
@@ -60,12 +61,13 @@ export default function RootLayout() {
 
   // If authenticated and currently on /login or /register,
   // send them to the right home:
-  if (authed && (pathname === "/login" || pathname === "/register")) {
-    if (role === "policeman") return <Redirect href="/police-dashboard" />;
+  if (authed && PUBLIC_ROUTES.has(pathname)) {
+    if (role === "policeman") return <Redirect href="/police" />;
     return <Redirect href="/" />; // (tabs)/index
   }
-
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
     <ThemeProvider>
       <Stack screenOptions={{ headerShown: false }} initialRouteName="onboard">
         <StatusBar style="auto" />
@@ -84,11 +86,13 @@ export default function RootLayout() {
         <Stack.Screen name="police-chat-detail" />
         <Stack.Screen name="user-profile" />
 
-        <Stack.Screen name="emergency-sos" />
-        <Stack.Screen name="my-reports" />
-        <Stack.Screen name="report-form" />
-        <Stack.Screen name="report-details" />
+        <Stack.Screen name="emergency-sos"  />
+          <Stack.Screen name="my-reports"  />
+           <Stack.Screen name="report-form"  />
+           <Stack.Screen name="report-details"  />
       </Stack>
     </ThemeProvider>
+    </Stack>
+    </GestureHandlerRootView>
   );
 }

@@ -57,6 +57,7 @@ export default function Dashboard() {
 
     const setupNotifications = async () => {
       try {
+
         const token = await AsyncStorage.getItem("token");
         if (!token) {
           console.log("No token found. Please log in.");
