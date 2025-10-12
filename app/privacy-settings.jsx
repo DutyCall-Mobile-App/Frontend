@@ -18,9 +18,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function PrivacySettings() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   
   // Privacy states
   const [locationEnabled, setLocationEnabled] = useState(true);
@@ -129,13 +133,13 @@ export default function PrivacySettings() {
   const renderSettingItem = (item, index) => {
     if (item.type === "toggle") {
       return (
-        <View key={index} style={styles.settingItem}>
-          <View style={styles.settingIconContainer}>
+        <View key={index} style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+          <View style={[styles.settingIconContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
             <item.icon size={20} color="#007AFF" />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{item.title}</Text>
-            <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
           </View>
           <Switch
             value={item.value}
@@ -149,49 +153,49 @@ export default function PrivacySettings() {
 
     if (item.type === "action") {
       return (
-        <TouchableOpacity key={index} style={styles.settingItem} onPress={item.action}>
-          <View style={styles.settingIconContainer}>
+        <TouchableOpacity key={index} style={[styles.settingItem, { borderBottomColor: colors.border }]} onPress={item.action}>
+          <View style={[styles.settingIconContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
             <item.icon size={20} color="#007AFF" />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{item.title}</Text>
-            <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+            <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
+            <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
         </TouchableOpacity>
       );
     }
 
     return (
-      <TouchableOpacity key={index} style={styles.settingItem}>
-        <View style={styles.settingIconContainer}>
+      <TouchableOpacity key={index} style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+        <View style={[styles.settingIconContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
           <item.icon size={20} color="#007AFF" />
         </View>
         <View style={styles.settingContent}>
-          <Text style={styles.settingTitle}>{item.title}</Text>
-          <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+          <Text style={[styles.settingTitle, { color: colors.text }]}>{item.title}</Text>
+          <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
         </View>
-        <Text style={styles.chevron}>›</Text>
+        <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
       </TouchableOpacity>
     );
   };
 
   const renderSection = (title, items) => (
     <View key={title} style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContainer}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
         {items.map((item, index) => renderSettingItem(item, index))}
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Privacy & Security</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Privacy & Security</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -207,10 +211,10 @@ export default function PrivacySettings() {
 
         {/* Privacy Notice */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Privacy Notice</Text>
-          <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Privacy Notice</Text>
+          <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
             <View style={styles.privacyNotice}>
-              <Text style={styles.privacyText}>
+              <Text style={[styles.privacyText, { color: colors.textSecondary }]}>
                 We take your privacy seriously. Your personal information is encrypted and stored securely. 
                 We only collect data necessary to provide our services and improve your experience.
               </Text>

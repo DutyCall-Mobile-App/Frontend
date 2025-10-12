@@ -22,10 +22,14 @@ import {
   View,
 } from "react-native";
 import ApiService from "../services/apiService";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function ReportDetails() {
   const router = useRouter();
   const { reportId } = useLocalSearchParams();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -140,21 +144,22 @@ export default function ReportDetails() {
   };
 
   const FILE_BASE_URL = "http://10.92.81.249:3000"; // same as  API server
+  const FILE_BASE_URL = "http:/172.20.10.4:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <ChevronLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Report Details</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Report Details</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleEdit} style={styles.actionButton}>
             <Edit size={20} color="#007AFF" />
@@ -176,7 +181,7 @@ export default function ReportDetails() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading report details...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading report details...</Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -200,30 +205,30 @@ export default function ReportDetails() {
         </View>
       ) : (
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.reportCard}>
-            <Text style={styles.reportId}>#{report.id}</Text>
-            <Text style={styles.reportTitle}>{report.title}</Text>
+          <View style={[styles.reportCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.reportId, { color: colors.textSecondary }]}>#{report.id}</Text>
+            <Text style={[styles.reportTitle, { color: colors.text }]}>{report.title}</Text>
             <Text style={styles.reportCategory}>{report.category}</Text>
 
             <View style={styles.metaInfo}>
               <View style={styles.metaItem}>
-                <MapPin size={16} color="#8E8E93" />
-                <Text style={styles.metaText}>{report.location}</Text>
+                <MapPin size={16} color={colors.textSecondary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{report.location}</Text>
               </View>
               <View style={styles.metaItem}>
-                <Calendar size={16} color="#8E8E93" />
-                <Text style={styles.metaText}>
+                <Calendar size={16} color={colors.textSecondary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>
                   {new Date(report.date).toLocaleDateString()}
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.description}>{report.description}</Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{report.description}</Text>
 
             {/* Evidence Section */}
             {report.evidence && report.evidence.length > 0 && (
               <View style={styles.evidenceSection}>
-                <Text style={styles.evidenceTitle}>Evidence</Text>
+                <Text style={[styles.evidenceTitle, { color: colors.text }]}>Evidence</Text>
                 <FlatList
                   data={report.evidence}
                   horizontal
@@ -232,16 +237,16 @@ export default function ReportDetails() {
                   showsHorizontalScrollIndicator={false}
                   renderItem={({ item }) => (
                     <View style={styles.evidenceContainer}>
-                    <Image
-                      source={{
-                        uri:
-                          item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
-                            ? item.fileUrl
-                            : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
-                      }}
-                      style={styles.evidenceThumbnail}
-                      resizeMode="cover"
-                    />
+                      <Image
+                        source={{
+                          uri:
+                            item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
+                              ? item.fileUrl
+                              : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
+                        }}
+                        style={styles.evidenceThumbnail}
+                        resizeMode="cover"
+                      />
 
                       {item.fileType === "video" && (
                         <View style={styles.playIconOverlay}>
@@ -255,8 +260,8 @@ export default function ReportDetails() {
             )}
           </View>
 
-          <View style={styles.timelineCard}>
-            <Text style={styles.timelineTitle}>Status Timeline</Text>
+          <View style={[styles.timelineCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.timelineTitle, { color: colors.text }]}>Status Timeline</Text>
 
             {report.timeline.map((item, index) => (
               <View key={index} style={styles.timelineItem}>
@@ -267,14 +272,14 @@ export default function ReportDetails() {
                       {
                         backgroundColor: item.completed
                           ? getStatusColor(item.status)
-                          : "#E5E5EA",
+                          : (isDarkMode ? colors.border : "#E5E5EA"),
                       },
                     ]}
                   >
                     {item.completed ? (
                       <CheckCircle size={12} color="#FFFFFF" />
                     ) : (
-                      <Clock size={12} color="#8E8E93" />
+                      <Clock size={12} color={colors.textSecondary} />
                     )}
                   </View>
                   {index < report.timeline.length - 1 && (
@@ -284,7 +289,7 @@ export default function ReportDetails() {
                         {
                           backgroundColor: item.completed
                             ? getStatusColor(item.status)
-                            : "#E5E5EA",
+                            : (isDarkMode ? colors.border : "#E5E5EA"),
                         },
                       ]}
                     />
@@ -295,13 +300,13 @@ export default function ReportDetails() {
                   <Text
                     style={[
                       styles.timelineStatus,
-                      { color: item.completed ? "#000000" : "#8E8E93" },
+                      { color: item.completed ? colors.text : colors.textSecondary },
                     ]}
                   >
                     {formatStatusTitle(item.status)}
                   </Text>
                   {item.date && (
-                    <Text style={styles.timelineDate}>
+                    <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
                       {new Date(item.date).toLocaleDateString()} at {item.time}
                     </Text>
                   )}

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://10.92.81.249:3000/api', // or your PC IP192.168.216.1
+  baseURL: 'http://172.20.10.4:3000/api', // or your PC IP192.168.216.1
 });
 
 // Attach token automatically to every request

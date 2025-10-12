@@ -17,9 +17,13 @@ import {
   View,
 } from "react-native";
 import ApiService from "../services/apiService";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function MyReports() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,15 +94,15 @@ export default function MyReports() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <ChevronLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>My Reports</Text>
+        <Text style={[styles.title, { color: colors.text }]}>My Reports</Text>
       </View>
 
       <ScrollView
@@ -111,7 +115,7 @@ export default function MyReports() {
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Loading reports...</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading reports...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -122,8 +126,8 @@ export default function MyReports() {
           </View>
         ) : reports.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No reports found</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No reports found</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
               Your submitted reports will appear here
             </Text>
           </View>
@@ -131,11 +135,11 @@ export default function MyReports() {
           reports.map((report) => (
             <TouchableOpacity
               key={report.id}
-              style={styles.reportCard}
+              style={[styles.reportCard, { backgroundColor: colors.surface }]}
               onPress={() => handleReportPress(report.id)}
             >
               <View style={styles.reportHeader}>
-                <Text style={styles.reportId}>#{report.id.slice(-4)}</Text>
+                <Text style={[styles.reportId, { color: colors.textSecondary }]}>#{report.id.slice(-4)}</Text>
                 <View
                   style={[
                     styles.statusBadge,
@@ -154,12 +158,12 @@ export default function MyReports() {
                 </View>
               </View>
 
-              <Text style={styles.reportTitle}>{report.title}</Text>
+              <Text style={[styles.reportTitle, { color: colors.text }]}>{report.title}</Text>
               <Text style={styles.reportCategory}>{report.category}</Text>
-              <Text style={styles.reportLocation}>{report.location}</Text>
+              <Text style={[styles.reportLocation, { color: colors.textSecondary }]}>{report.location}</Text>
 
-              <View style={styles.reportFooter}>
-                <Text style={styles.reportDate}>
+              <View style={[styles.reportFooter, { borderTopColor: colors.border }]}>
+                <Text style={[styles.reportDate, { color: colors.textSecondary }]}>
                   {new Date(report.date).toLocaleDateString()}
                 </Text>
               </View>

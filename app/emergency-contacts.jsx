@@ -20,9 +20,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function EmergencyContacts() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [favorites, setFavorites] = useState(["1990", "119"]);
 
   const emergencyServices = [
@@ -138,13 +142,13 @@ export default function EmergencyContacts() {
   };
 
   const renderContactItem = (contact) => (
-    <View key={contact.id} style={styles.contactItem}>
+    <View key={contact.id} style={[styles.contactItem, { borderBottomColor: colors.border }]}>
       <View style={[styles.contactIcon, { backgroundColor: `${contact.color}15` }]}>
         <contact.icon size={24} color={contact.color} />
       </View>
       <View style={styles.contactInfo}>
-        <Text style={styles.contactTitle}>{contact.title}</Text>
-        <Text style={styles.contactDescription}>{contact.description}</Text>
+        <Text style={[styles.contactTitle, { color: colors.text }]}>{contact.title}</Text>
+        <Text style={[styles.contactDescription, { color: colors.textSecondary }]}>{contact.description}</Text>
         <Text style={[styles.contactNumber, { color: contact.color }]}>
           {contact.number}
         </Text>
@@ -156,7 +160,7 @@ export default function EmergencyContacts() {
         >
           <Text style={[
             styles.favoriteText,
-            { color: favorites.includes(contact.number) ? "#FF3B30" : "#8E8E93" }
+            { color: favorites.includes(contact.number) ? "#FF3B30" : colors.textSecondary }
           ]}>
             {favorites.includes(contact.number) ? "♥" : "♡"}
           </Text>
@@ -173,20 +177,20 @@ export default function EmergencyContacts() {
 
   const renderSection = (title, contacts) => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContainer}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
         {contacts.map(renderContactItem)}
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Emergency Contacts</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Emergency Contacts</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -195,7 +199,7 @@ export default function EmergencyContacts() {
 
         {/* Quick Access */}
         <View style={styles.quickAccess}>
-          <Text style={styles.quickAccessTitle}>Quick Access</Text>
+          <Text style={[styles.quickAccessTitle, { color: colors.text }]}>Quick Access</Text>
           <View style={styles.quickButtons}>
             <TouchableOpacity
               style={[styles.quickButton, { backgroundColor: "#FF3B30" }]}
@@ -232,21 +236,21 @@ export default function EmergencyContacts() {
 
         {/* Important Notes */}
         <View style={styles.notesSection}>
-          <Text style={styles.notesTitle}>Important Notes</Text>
-          <View style={styles.notesContainer}>
-            <Text style={styles.noteItem}>
+          <Text style={[styles.notesTitle, { color: colors.text }]}>Important Notes</Text>
+          <View style={[styles.notesContainer, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.noteItem, { color: colors.textSecondary }]}>
               • Keep emergency numbers saved in your phone's contacts
             </Text>
-            <Text style={styles.noteItem}>
+            <Text style={[styles.noteItem, { color: colors.textSecondary }]}>
               • Stay calm and provide clear information when calling
             </Text>
-            <Text style={styles.noteItem}>
+            <Text style={[styles.noteItem, { color: colors.textSecondary }]}>
               • Know your exact location when reporting emergencies
             </Text>
-            <Text style={styles.noteItem}>
+            <Text style={[styles.noteItem, { color: colors.textSecondary }]}>
               • For non-emergency police matters, call your local police station
             </Text>
-            <Text style={styles.noteItem}>
+            <Text style={[styles.noteItem, { color: colors.textSecondary }]}>
               • Save these numbers in your phone's emergency contacts
             </Text>
           </View>

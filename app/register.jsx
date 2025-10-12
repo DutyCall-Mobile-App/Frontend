@@ -13,9 +13,13 @@ import {
     View
 } from 'react-native';
 import API from './utils/api'; // <- if utils is inside /app. If not, change to ../utils/api
+import { useTheme } from './context/ThemeContext';
+import { getTheme } from './utils/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -95,6 +99,7 @@ export default function RegisterScreen() {
       await AsyncStorage.multiSet([
         ['token', token],
         ['role', userRole],
+        ['onboardingCompleted', 'true'],
       ]);
 
       showToast('Registration successful!', 'success');
@@ -118,36 +123,36 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: isDarkMode ? colors.surface : '#E3F2FD' }]} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#1877F2" />
           </TouchableOpacity>
-          <View style={styles.iconContainer}>
+          <View style={[styles.iconContainer, { backgroundColor: isDarkMode ? colors.surface : '#E3F2FD' }]}>
             <Ionicons name="person-add" size={48} color="#1877F2" />
           </View>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Sign up to get started</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign up to get started</Text>
         </View>
 
         {/* Form */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, { backgroundColor: colors.surface }]}>
           {/* Name */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={[styles.inputWrapper, !!nameError && styles.inputError]}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }, !!nameError && styles.inputError]}>
+              <Ionicons name="person-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter your full name"
+                placeholderTextColor={colors.textSecondary}
                 value={name}
                 onChangeText={validateName}
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 autoCapitalize="words"
-                placeholderTextColor="#999"
               />
               {!!name && !nameError && <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />}
             </View>
@@ -156,18 +161,18 @@ export default function RegisterScreen() {
 
           {/* Email */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrapper, !!emailError && styles.inputError]}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }, !!emailError && styles.inputError]}>
+              <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter your email"
+                placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={validateEmail}
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholderTextColor="#999"
               />
               {!!email && !emailError && <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />}
             </View>
@@ -176,20 +181,20 @@ export default function RegisterScreen() {
 
           {/* Password */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, !!passwordError && styles.inputError]}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }, !!passwordError && styles.inputError]}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter your password"
+                placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={validatePassword}
                 secureTextEntry={!showPassword}
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 autoCapitalize="none"
-                placeholderTextColor="#999"
               />
               <TouchableOpacity onPress={() => setShowPassword((p) => !p)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#666" />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
@@ -197,17 +202,17 @@ export default function RegisterScreen() {
 
           {/* Role */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Select Role</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Select Role</Text>
             <View style={styles.roleContainer}>
               <TouchableOpacity
-                style={[styles.roleCard, role === 'user' && styles.roleCardActive]}
+                style={[styles.roleCard, { backgroundColor: colors.inputBackground, borderColor: colors.border }, role === 'user' && styles.roleCardActive]}
                 onPress={() => setRole('user')}
               >
-                <View style={[styles.roleIcon, role === 'user' && styles.roleIconActive]}>
-                  <Ionicons name="person" size={26} color={role === 'user' ? '#1877F2' : '#666'} />
+                <View style={[styles.roleIcon, { backgroundColor: colors.surface }, role === 'user' && styles.roleIconActive]}>
+                  <Ionicons name="person" size={26} color={role === 'user' ? '#1877F2' : colors.textSecondary} />
                 </View>
-                <Text style={[styles.roleTitle, role === 'user' && styles.roleTextActive]}>User</Text>
-                <Text style={styles.roleDescription}>Regular user account</Text>
+                <Text style={[styles.roleTitle, { color: colors.text }, role === 'user' && styles.roleTextActive]}>User</Text>
+                <Text style={[styles.roleDescription, { color: colors.textSecondary }]}>Regular user account</Text>
                 {role === 'user' && (
                   <View style={styles.selectedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -216,14 +221,14 @@ export default function RegisterScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.roleCard, role === 'policeman' && styles.roleCardActive]}
+                style={[styles.roleCard, { backgroundColor: colors.inputBackground, borderColor: colors.border }, role === 'policeman' && styles.roleCardActive]}
                 onPress={() => setRole('policeman')}
               >
-                <View style={[styles.roleIcon, role === 'policeman' && styles.roleIconActive]}>
-                  <Ionicons name="shield-checkmark" size={26} color={role === 'policeman' ? '#1877F2' : '#666'} />
+                <View style={[styles.roleIcon, { backgroundColor: colors.surface }, role === 'policeman' && styles.roleIconActive]}>
+                  <Ionicons name="shield-checkmark" size={26} color={role === 'policeman' ? '#1877F2' : colors.textSecondary} />
                 </View>
-                <Text style={[styles.roleTitle, role === 'policeman' && styles.roleTextActive]}>Policeman</Text>
-                <Text style={styles.roleDescription}>Law enforcement</Text>
+                <Text style={[styles.roleTitle, { color: colors.text }, role === 'policeman' && styles.roleTextActive]}>Policeman</Text>
+                <Text style={[styles.roleDescription, { color: colors.textSecondary }]}>Law enforcement</Text>
                 {role === 'policeman' && (
                   <View className="selectedBadge" style={styles.selectedBadge}>
                     <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -245,7 +250,7 @@ export default function RegisterScreen() {
 
           {/* Back to Login */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text style={[styles.loginText, { color: colors.textSecondary }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.replace('/login')}>
               <Text style={styles.loginLink}>Login</Text>
             </TouchableOpacity>

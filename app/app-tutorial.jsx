@@ -19,11 +19,15 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 const { width } = Dimensions.get("window");
 
 export default function AppTutorial() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [currentStep, setCurrentStep] = useState(0);
 
   const tutorialSteps = [
@@ -169,29 +173,29 @@ export default function AppTutorial() {
   const renderFeature = (feature, index) => (
     <View key={index} style={styles.featureItem}>
       <CheckCircle size={16} color="#32D74B" />
-      <Text style={styles.featureText}>{feature}</Text>
+      <Text style={[styles.featureText, { color: colors.text }]}>{feature}</Text>
     </View>
   );
 
   const renderTip = (tip, index) => (
     <View key={index} style={styles.tipItem}>
-      <View style={styles.tipIcon}>
+      <View style={[styles.tipIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
         <tip.icon size={20} color="#007AFF" />
       </View>
       <View style={styles.tipContent}>
-        <Text style={styles.tipTitle}>{tip.title}</Text>
-        <Text style={styles.tipDescription}>{tip.description}</Text>
+        <Text style={[styles.tipTitle, { color: colors.text }]}>{tip.title}</Text>
+        <Text style={[styles.tipDescription, { color: colors.textSecondary }]}>{tip.description}</Text>
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>App Tutorial</Text>
+        <Text style={[styles.title, { color: colors.text }]}>App Tutorial</Text>
         <TouchableOpacity onPress={skipTutorial} style={styles.skipButton}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
@@ -199,7 +203,7 @@ export default function AppTutorial() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Current Step */}
-        <View style={styles.stepContainer}>
+        <View style={[styles.stepContainer, { backgroundColor: colors.surface }]}>
           <View style={styles.stepImageContainer}>
             <Image
               source={{ uri: tutorialSteps[currentStep].image }}
@@ -211,8 +215,8 @@ export default function AppTutorial() {
           </View>
 
           <View style={styles.stepContent}>
-            <Text style={styles.stepTitle}>{tutorialSteps[currentStep].title}</Text>
-            <Text style={styles.stepDescription}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>{tutorialSteps[currentStep].title}</Text>
+            <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
               {tutorialSteps[currentStep].description}
             </Text>
 
@@ -230,12 +234,12 @@ export default function AppTutorial() {
                 key={index}
                 style={[
                   styles.progressDot,
-                  index <= currentStep && styles.progressDotActive,
+                  { backgroundColor: index <= currentStep ? '#007AFF' : (isDarkMode ? colors.border : '#E5E5EA') },
                 ]}
               />
             ))}
           </View>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
             {currentStep + 1} of {tutorialSteps.length}
           </Text>
         </View>
@@ -243,16 +247,16 @@ export default function AppTutorial() {
         {/* Navigation Buttons */}
         <View style={styles.navigationContainer}>
           <TouchableOpacity
-            style={[styles.navButton, styles.prevButton]}
+            style={[styles.navButton, styles.prevButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
             onPress={prevStep}
             disabled={currentStep === 0}
           >
-            <Text style={[styles.navButtonText, currentStep === 0 && styles.navButtonDisabled]}>
+            <Text style={[styles.navButtonText, { color: currentStep === 0 ? colors.textSecondary : '#007AFF' }]}>
               Previous
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navButton} onPress={nextStep}>
+          <TouchableOpacity style={[styles.navButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]} onPress={nextStep}>
             <Text style={styles.navButtonText}>
               {currentStep === tutorialSteps.length - 1 ? "Finish" : "Next"}
             </Text>
@@ -262,16 +266,16 @@ export default function AppTutorial() {
 
         {/* Quick Tips */}
         <View style={styles.tipsSection}>
-          <Text style={styles.tipsTitle}>Quick Tips</Text>
-          <View style={styles.tipsContainer}>
+          <Text style={[styles.tipsTitle, { color: colors.text }]}>Quick Tips</Text>
+          <View style={[styles.tipsContainer, { backgroundColor: colors.surface }]}>
             {quickTips.map(renderTip)}
           </View>
         </View>
 
         {/* Help Section */}
-        <View style={styles.helpSection}>
-          <Text style={styles.helpTitle}>Need More Help?</Text>
-          <Text style={styles.helpText}>
+        <View style={[styles.helpSection, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.helpTitle, { color: colors.text }]}>Need More Help?</Text>
+          <Text style={[styles.helpText, { color: colors.textSecondary }]}>
             If you need additional assistance, visit our Help & Support section 
             or contact our customer service team.
           </Text>

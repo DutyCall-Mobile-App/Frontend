@@ -1,62 +1,36 @@
-// import { Stack } from "expo-router";
-// import { StatusBar } from "expo-status-bar";
-// import { useFrameworkReady } from "../hooks/useFrameworkReady";
-
-// export default function RootLayout() {
-//   useFrameworkReady();
-
-//   return (
-//     <>
-//       <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
-//         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-//         <Stack.Screen name="emergency-sos" options={{ headerShown: false }} />
-//         <Stack.Screen name="my-reports" options={{ headerShown: false }} />
-//         <Stack.Screen name="report-form" options={{ headerShown: false }} />
-//         <Stack.Screen name="report-details" options={{ headerShown: false }} />
-//         <Stack.Screen
-//           name="submission-success"
-//           options={{ headerShown: false }}
-//         />
-//         <Stack.Screen name="edit-report" options={{ headerShown: false }} />
-//         <Stack.Screen
-//           name="profile-settings"
-//           options={{ headerShown: false }}
-//         />
-//         <Stack.Screen name="+not-found" />
-//       </Stack>
-//       <StatusBar style="auto" />
-//     </>
-//   );
-// }
-
-
 // app/_layout.jsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, Stack, usePathname } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ThemeProvider } from "./context/ThemeContext";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/onboard"]);
 
 export default function RootLayout() {
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const [token, storedRole] = await Promise.all([
+        const [token, storedRole, onboardingStatus] = await Promise.all([
           AsyncStorage.getItem("token"),
           AsyncStorage.getItem("role"),
+          AsyncStorage.getItem("onboardingCompleted"),
         ]);
         setAuthed(!!token);
         setRole(storedRole || null);
+        setOnboardingCompleted(onboardingStatus === "true");
       } catch (e) {
         setAuthed(false);
         setRole(null);
+        setOnboardingCompleted(false);
       } finally {
         setIsReady(true);
       }
@@ -71,8 +45,17 @@ export default function RootLayout() {
     );
   }
 
-  // If not authenticated, allow only /login and /register
-  if (!authed && !PUBLIC_ROUTES.has(pathname)) {
+  // If onboarding not completed and not on onboarding screen, redirect to onboarding
+  if (!onboardingCompleted && !pathname.startsWith("/onboard")) {
+    return <Redirect href="/onboard" />;
+  }
+
+  // If not authenticated, allow only /login, /register, and /onboard
+  if (
+    !authed &&
+    !PUBLIC_ROUTES.has(pathname) &&
+    !pathname.startsWith("/onboard")
+  ) {
     return <Redirect href="/login" />;
   }
 
@@ -82,10 +65,15 @@ export default function RootLayout() {
     if (role === "policeman") return <Redirect href="/police" />;
     return <Redirect href="/" />; // (tabs)/index
   }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }} initialRouteName="onboard">
+        <StatusBar style="auto" />
+        {/* Onboarding */}
+        <Stack.Screen name="onboard" />
+
         {/* Public */}
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
@@ -103,6 +91,8 @@ export default function RootLayout() {
            <Stack.Screen name="report-form"  />
            <Stack.Screen name="report-details"  />
       </Stack>
+    </ThemeProvider>
+    </Stack>
     </GestureHandlerRootView>
   );
 }
