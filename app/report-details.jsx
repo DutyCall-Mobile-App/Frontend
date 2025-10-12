@@ -22,7 +22,6 @@ import {
   View,
 } from "react-native";
 import ApiService from "../services/apiService";
-import { FILE_BASE as FILE_BASE_URL } from "./utils/config";
 
 export default function ReportDetails() {
   const router = useRouter();
@@ -63,13 +62,7 @@ export default function ReportDetails() {
 
   // Create timeline based on current status
   const createTimeline = (currentStatus, createdAt) => {
-    const steps = [
-      "Submitted",
-      "Under Review",
-      "In Progress",
-      "Action Taken",
-      "Resolved",
-    ];
+    const steps = ["Submitted", "Under Review", "In Progress", "Action Taken", "Resolved"];
 
     return steps.map((status, index) => {
       const completedIndex = steps.indexOf(currentStatus);
@@ -77,8 +70,13 @@ export default function ReportDetails() {
       return {
         status,
         date:
-          index <= completedIndex ? new Date().toISOString().split("T")[0] : "",
-        time: index <= completedIndex ? new Date().toLocaleTimeString() : "",
+          index <= completedIndex
+            ? new Date().toISOString().split("T")[0]
+            : "",
+        time:
+          index <= completedIndex
+            ? new Date().toLocaleTimeString()
+            : "",
         completed: index <= completedIndex,
       };
     });
@@ -140,6 +138,8 @@ export default function ReportDetails() {
         return "#E5E5EA";
     }
   };
+
+  const FILE_BASE_URL = "http://172.20.10.9:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -232,21 +232,16 @@ export default function ReportDetails() {
                   showsHorizontalScrollIndicator={false}
                   renderItem={({ item }) => (
                     <View style={styles.evidenceContainer}>
-                      <Image
-                        source={{
-                          uri:
-                            item.fileUrl.startsWith("http") ||
-                            item.fileUrl.startsWith("file://")
-                              ? item.fileUrl
-                              : `${FILE_BASE_URL}${
-                                  item.fileUrl.startsWith("/")
-                                    ? item.fileUrl
-                                    : "/" + item.fileUrl
-                                }`,
-                        }}
-                        style={styles.evidenceThumbnail}
-                        resizeMode="cover"
-                      />
+                    <Image
+                      source={{
+                        uri:
+                          item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
+                            ? item.fileUrl
+                            : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
+                      }}
+                      style={styles.evidenceThumbnail}
+                      resizeMode="cover"
+                    />
 
                       {item.fileType === "video" && (
                         <View style={styles.playIconOverlay}>
