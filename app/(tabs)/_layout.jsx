@@ -4,6 +4,7 @@ import { Home, Plus, Settings } from "lucide-react-native";
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#007AFF",
