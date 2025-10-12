@@ -1,9 +1,11 @@
 // Updated report-form.jsx (submit to backend with FormData for files)
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av"; // Change back to expo-av for now
 import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import ApiService from "../services/apiService";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -81,7 +83,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.9:3000/api/reports/create";
+  const API_URL = "http://172.20.10.4:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
@@ -97,7 +99,9 @@ export default function ReportForm() {
         `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({
             config: {
               encoding: "LINEAR16",
@@ -346,7 +350,7 @@ export default function ReportForm() {
             `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Authorization": `Bearer ${token}`},
               body: JSON.stringify({
                 config,
                 audio: {
@@ -657,44 +661,57 @@ export default function ReportForm() {
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!description) {
+    // Basic validation
+    if (!description.trim()) {
       alert("Please provide a description.");
       return;
     }
+
     if (!location) {
       alert("Please select a location.");
       return;
     }
+
     if (postAnonymous && media.length === 0) {
-      alert(
-        "Please add at least one evidence photo or video for anonymous posts."
-      );
+      alert("Please add at least one evidence photo or video for anonymous posts.");
       return;
     }
-    if (!postAnonymous && (!fullName || !nicNumber || !contactNumber)) {
-      alert(
-        "Please provide full name, NIC number, and contact number for non-anonymous posts."
-      );
+
+    if (!postAnonymous) {
+      if (!fullName.trim() || !nicNumber.trim() || !contactNumber.trim()) {
+        alert("Please provide full name, NIC number, and contact number for non-anonymous posts.");
+        return;
+      }
+    }
+
+    // Convert contact number to number safely
+    const contactNum = contactNumber ? Number(contactNumber.replace(/\D/g, "")) : undefined;
+
+    if (!postAnonymous && isNaN(contactNum)) {
+      alert("Contact number must be a valid number.");
       return;
     }
 
     setIsLoading(true);
+
     try {
       const formData = new FormData();
-      // Combine main category and subcategory for more descriptive category field
+
+      // Combine main category and subcategory
       const fullCategory = `${categoryTitle} - ${subcategory}`;
       formData.append("category", fullCategory);
       formData.append("latitude", location.latitude.toString());
       formData.append("longitude", location.longitude.toString());
       formData.append("address", location.address || "");
-      formData.append("description", description);
+      formData.append("description", description.trim());
 
       if (!postAnonymous) {
-        formData.append("full_name", fullName);
-        formData.append("nic", nicNumber);
-        formData.append("contact_number", contactNumber);
+        formData.append("full_name", fullName.trim());
+        formData.append("nic", nicNumber.trim());
+        formData.append("contact_number", contactNum.toString());
       }
 
+      // Append media
       media.forEach((item, i) => {
         let fileType = item.type === "video" ? "video/mp4" : "image/jpeg";
         let fileExt = item.type === "video" ? "mp4" : "jpg";
@@ -705,10 +722,16 @@ export default function ReportForm() {
         });
       });
 
+      // Get token
+      const token = await AsyncStorage.getItem("token");
+      if (!token) throw new Error("User token not found. Please login again.");
+
       const response = await fetch(API_URL, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
-        // ❌ Removed manual headers (fetch will set correct multipart boundary)
       });
 
       if (!response.ok) {
@@ -717,12 +740,16 @@ export default function ReportForm() {
       }
 
       const result = await response.json();
-      console.log("Report submitted:", result);
-      router.push("/submission-success");
+      if (result.success) {
+        console.log("Report submitted:", result);
+        router.push("/submission-success");
+      } else {
+        throw new Error(result.error || "Submission failed");
+      }
     } catch (error) {
+      console.error("Error creating report:", error);
       alert("Submission failed: " + error.message);
     } finally {
-      // ✅ Always stop loading spinner
       setIsLoading(false);
     }
   };
