@@ -249,6 +249,7 @@ export default function Dashboard() {
                         {new Date(notification.createdAt || notification.timestamp).toLocaleString()}
                       </Text>
                     </View>
+                  </View>
                 </TouchableOpacity>
               );
             })}
