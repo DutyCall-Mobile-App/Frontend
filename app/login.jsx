@@ -1,6 +1,7 @@
 // app/login.jsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import jwt_decode from 'jwt-decode';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -69,20 +70,24 @@ export default function LoginScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [token, role] = await Promise.all([
-          AsyncStorage.getItem('token'),
-          AsyncStorage.getItem('role'),
-        ]);
+        const token = await AsyncStorage.getItem('token');
+        const role = await AsyncStorage.getItem('role');
+
         if (token && role) {
-          // Go where they belong
+          // Decode token
+          const decoded = jwt_decode(token);
+          const userId = decoded.id;
+          console.log('Loaded userId from token:', userId);
+
+          // Route by role
           if (role === 'policeman') {
             router.replace('/police-dashboard');
           } else {
-            router.replace('/'); // Home tab in (tabs)
+            router.replace('/'); // home tab
           }
         }
       } catch (e) {
-        // ignore
+        console.error('Error loading token:', e);
       }
     })();
   }, [router]);
@@ -108,15 +113,16 @@ export default function LoginScreen() {
     try {
       // Your backend should return { data: { token, role } }
       const res = await API.post('/auth/login', { email, password });
-      const { token, role } = res.data?.data || {};
+      const { token, role, id } = res.data?.data || {};
 
-      if (!token || !role) {
+      if (!token || !role || !id) {
         throw new Error('Invalid response from server');
       }
 
       await AsyncStorage.multiSet([
         ['token', token],
         ['role', role],
+        ['userId', id],
       ]);
 
       showToast('Login successful!', 'success');

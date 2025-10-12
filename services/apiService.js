@@ -1,29 +1,37 @@
-// API Service for backend communication
-const BASE_URL = "http://172.20.10.9:3000/api";
-const FILE_BASE_URL = "http://172.20.10.9:3000"; // no /api
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const BASE_URL = "http://172.20.10.4:3000/api";
+const FILE_BASE_URL = "http://172.20.10.4:3000"; // for file URLs
 
 class ApiService {
+  // Get JWT token from storage
+  static async getToken() {
+    return await AsyncStorage.getItem("token");
+  }
+
+  // Common headers with authorization
+  static async getHeaders(isJson = true) {
+    const token = await this.getToken();
+    const headers = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (isJson) headers["Content-Type"] = "application/json";
+    return headers;
+  }
+
   // Get all reports
   static async getAllReports() {
     try {
       const response = await fetch(`${BASE_URL}/reports`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: await this.getHeaders(),
       });
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const result = await response.json();
-
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || "Failed to fetch reports");
-      }
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch reports");
     } catch (error) {
       console.error("Error fetching reports:", error);
       throw error;
@@ -35,58 +43,84 @@ class ApiService {
     try {
       const response = await fetch(`${BASE_URL}/reports/${reportId}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: await this.getHeaders(),
       });
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const result = await response.json();
-
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || "Failed to fetch report");
-      }
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch report");
     } catch (error) {
       console.error("Error fetching report:", error);
       throw error;
     }
   }
 
-  // Update report by ID (with JSON data)
-  static async updateReport(reportId, updateData) {
+  // Create new report (with file upload)
+  static async createReport(reportData) {
     try {
-      console.log("Updating report with ID:", reportId);
-      console.log("Update data:", JSON.stringify(updateData, null, 2));
+      const formData = new FormData();
 
-      const response = await fetch(`${BASE_URL}/reports/${reportId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
+      // Add all keys to FormData
+      Object.keys(reportData).forEach((key) => {
+        if (key === "evidence") {
+          reportData.evidence.forEach((file) => {
+            formData.append("evidence", {
+              uri: file.uri,
+              name: file.name,
+              type: file.type,
+            });
+          });
+        } else if (key === "location") {
+          formData.append("latitude", reportData.location.latitude);
+          formData.append("longitude", reportData.location.longitude);
+          formData.append("address", reportData.location.address || "");
+        } else {
+          formData.append(key, reportData[key]);
+        }
       });
 
-      console.log("Response status:", response.status);
+      const response = await fetch(`${BASE_URL}/reports/create`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${await this.getToken()}`,
+        },
+        body: formData,
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response:", errorText);
+        throw new Error(`Submission failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to create report");
+    } catch (error) {
+      console.error("Error creating report:", error);
+      throw error;
+    }
+  }
+
+  // Update report by ID
+  static async updateReport(reportId, updateData) {
+    try {
+      const response = await fetch(`${BASE_URL}/reports/${reportId}`, {
+        method: "PUT",
+        headers: await this.getHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(`Update failed: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log("Update result:", result);
-
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || "Failed to update report");
-      }
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to update report");
     } catch (error) {
       console.error("Error updating report:", error);
       throw error;
@@ -98,55 +132,22 @@ class ApiService {
     try {
       const response = await fetch(`${BASE_URL}/reports/${reportId}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: await this.getHeaders(),
       });
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const result = await response.json();
-
-      if (result.success) {
-        return result;
-      } else {
-        throw new Error(result.error || "Failed to delete report");
-      }
+      if (result.success) return result;
+      throw new Error(result.error || "Failed to delete report");
     } catch (error) {
       console.error("Error deleting report:", error);
       throw error;
     }
   }
 
-  // Create new report (already exists in report-form.jsx, but adding here for completeness)
-  static async createReport(formData) {
-    try {
-      const response = await fetch(`${BASE_URL}/reports/create`, {
-        method: "POST",
-        body: formData, // FormData for file uploads
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Submission failed: ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.error || "Failed to create report");
-      }
-    } catch (error) {
-      console.error("Error creating report:", error);
-      throw error;
-    }
-  }
-
-  // Helper function to map backend status to frontend status
+  // Helper: Map backend status to frontend
   static mapStatus(backendStatus) {
     const statusMap = {
       Submitted: "pending",
@@ -155,22 +156,27 @@ class ApiService {
       "Action Taken": "approved",
       Resolved: "approved",
     };
-
     return statusMap[backendStatus] || "pending";
   }
 
-  // Helper function to format report data for frontend
+  // Helper: Format report data for frontend
   static formatReportForFrontend(report) {
-    function normalizeStatus(status) {
+    const normalizeStatus = (status) => {
       switch (status?.toLowerCase()) {
-        case "submitted": return "Submitted";
-        case "under review": return "Under Review";
-        case "in progress": return "In Progress";
-        case "action taken": return "Action Taken";
-        case "resolved": return "Resolved";
-        default: return status;
+        case "submitted":
+          return "Submitted";
+        case "under review":
+          return "Under Review";
+        case "in progress":
+          return "In Progress";
+        case "action taken":
+          return "Action Taken";
+        case "resolved":
+          return "Resolved";
+        default:
+          return status;
       }
-    }
+    };
 
     return {
       id: report._id,
@@ -178,7 +184,7 @@ class ApiService {
         report.description.length > 50
           ? report.description.substring(0, 50) + "..."
           : report.description,
-      status: normalizeStatus(report.status),   // ✅ fixed
+      status: normalizeStatus(report.status),
       date: report.createdAt
         ? new Date(report.createdAt).toISOString().split("T")[0]
         : "",
@@ -186,10 +192,11 @@ class ApiService {
       location:
         report.location?.address ||
         `${report.location?.latitude}, ${report.location?.longitude}`,
-      evidence: report.evidence?.map(ev => ({
-        ...ev,
-        fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
-      })) || [], // ✅ only once
+      evidence:
+        report.evidence?.map((ev) => ({
+          ...ev,
+          fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
+        })) || [],
       description: report.description,
       fullName: report.full_name,
       nic: report.nic,

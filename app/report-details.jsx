@@ -139,7 +139,7 @@ export default function ReportDetails() {
     }
   };
 
-  const FILE_BASE_URL = "http://172.20.10.9:3000"; // same as  API server
+  const FILE_BASE_URL = "http:/172.20.10.4:3000"; // same as  API server
 
   const formatStatusTitle = (status) => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ");
@@ -232,16 +232,16 @@ export default function ReportDetails() {
                   showsHorizontalScrollIndicator={false}
                   renderItem={({ item }) => (
                     <View style={styles.evidenceContainer}>
-                    <Image
-                      source={{
-                        uri:
-                          item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
-                            ? item.fileUrl
-                            : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
-                      }}
-                      style={styles.evidenceThumbnail}
-                      resizeMode="cover"
-                    />
+                      <Image
+                        source={{
+                          uri:
+                            item.fileUrl.startsWith("http") || item.fileUrl.startsWith("file://")
+                              ? item.fileUrl
+                              : `${FILE_BASE_URL}${item.fileUrl.startsWith("/") ? item.fileUrl : "/" + item.fileUrl}`
+                        }}
+                        style={styles.evidenceThumbnail}
+                        resizeMode="cover"
+                      />
 
                       {item.fileType === "video" && (
                         <View style={styles.playIconOverlay}>
