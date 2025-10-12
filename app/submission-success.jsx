@@ -5,17 +5,21 @@ import {
   Chrome as Home,
 } from "lucide-react-native";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function SubmissionSuccess() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <CheckCircle size={80} color="#32D74B" />
 
-        <Text style={styles.title}>Report Submitted Successfully!</Text>
-        <Text style={styles.message}>
+        <Text style={[styles.title, { color: colors.text }]}>Report Submitted Successfully!</Text>
+        <Text style={[styles.message, { color: colors.textSecondary }]}>
           Your report has been submitted and will be reviewed by the relevant
           authorities. You will receive updates on the status of your report.
         </Text>
@@ -32,7 +36,7 @@ export default function SubmissionSuccess() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.secondaryButton, { backgroundColor: colors.surface, borderColor: "#007AFF" }]}
             onPress={() => router.push("/my-reports")}
           >
             <FileText size={20} color="#007AFF" />

@@ -18,9 +18,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function ProfileSettings() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "Kavish Godage",
@@ -44,12 +48,12 @@ export default function ProfileSettings() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Profile Settings</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Profile Settings</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -67,13 +71,13 @@ export default function ProfileSettings() {
               <Camera size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{profileData.name}</Text>
+          <Text style={[styles.profileName, { color: colors.text }]}>{profileData.name}</Text>
         </View>
 
         {/* Profile Information */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Personal Information</Text>
             {!isEditing ? (
               <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
                 <Edit3 size={16} color="#007AFF" />
@@ -93,100 +97,105 @@ export default function ProfileSettings() {
 
           <View style={styles.infoContainer}>
             <View style={styles.infoItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <User size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Full Name</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Full Name</Text>
                 {isEditing ? (
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                     value={profileData.name}
                     onChangeText={(text) => setProfileData({ ...profileData, name: text })}
                     placeholder="Enter your full name"
+                    placeholderTextColor={colors.textSecondary}
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{profileData.name}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{profileData.name}</Text>
                 )}
               </View>
             </View>
 
             <View style={styles.infoItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <Mail size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email Address</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Email Address</Text>
                 {isEditing ? (
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                     value={profileData.email}
                     onChangeText={(text) => setProfileData({ ...profileData, email: text })}
                     placeholder="Enter your email"
                     keyboardType="email-address"
+                    placeholderTextColor={colors.textSecondary}
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{profileData.email}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{profileData.email}</Text>
                 )}
               </View>
             </View>
 
             <View style={styles.infoItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <Phone size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Phone Number</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Phone Number</Text>
                 {isEditing ? (
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                     value={profileData.phone}
                     onChangeText={(text) => setProfileData({ ...profileData, phone: text })}
                     placeholder="Enter your phone number"
                     keyboardType="phone-pad"
+                    placeholderTextColor={colors.textSecondary}
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{profileData.phone}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{profileData.phone}</Text>
                 )}
               </View>
             </View>
 
             <View style={styles.infoItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <User size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>NIC Number</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>NIC Number</Text>
                 {isEditing ? (
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                     value={profileData.nic}
                     onChangeText={(text) => setProfileData({ ...profileData, nic: text })}
                     placeholder="Enter your NIC number"
+                    placeholderTextColor={colors.textSecondary}
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{profileData.nic}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{profileData.nic}</Text>
                 )}
               </View>
             </View>
 
             <View style={styles.infoItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <User size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Address</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Address</Text>
                 {isEditing ? (
                   <TextInput
-                    style={[styles.textInput, styles.multilineInput]}
+                    style={[styles.textInput, styles.multilineInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                     value={profileData.address}
                     onChangeText={(text) => setProfileData({ ...profileData, address: text })}
                     placeholder="Enter your address"
                     multiline
                     numberOfLines={3}
+                    placeholderTextColor={colors.textSecondary}
                   />
                 ) : (
-                  <Text style={styles.infoValue}>{profileData.address}</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{profileData.address}</Text>
                 )}
               </View>
             </View>
@@ -194,29 +203,29 @@ export default function ProfileSettings() {
         </View>
 
         {/* Account Security */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Security</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Security</Text>
           <View style={styles.infoContainer}>
             <TouchableOpacity style={styles.securityItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <User size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Change Password</Text>
-                <Text style={styles.infoSubtext}>Update your account password</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>Change Password</Text>
+                <Text style={[styles.infoSubtext, { color: colors.textSecondary }]}>Update your account password</Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.securityItem}>
-              <View style={styles.infoIcon}>
+              <View style={[styles.infoIcon, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
                 <User size={20} color="#007AFF" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Two-Factor Authentication</Text>
-                <Text style={styles.infoSubtext}>Add extra security to your account</Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>Two-Factor Authentication</Text>
+                <Text style={[styles.infoSubtext, { color: colors.textSecondary }]}>Add extra security to your account</Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
             </TouchableOpacity>
           </View>
         </View>

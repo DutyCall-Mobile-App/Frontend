@@ -14,7 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTheme } from "../context/ThemeContext";
 import API from "../utils/api";
+import { getTheme } from "../utils/theme";
 
 export default function UserProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -23,6 +25,8 @@ export default function UserProfileScreen({ navigation }) {
   const [expanded, setExpanded] = useState(false);
   const animatedHeight = useState(new Animated.Value(0))[0];
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const theme = getTheme(isDarkMode);
 
   // Fetch user info
   const fetchUser = async () => {
@@ -85,17 +89,24 @@ export default function UserProfileScreen({ navigation }) {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.background }]}
+    >
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.background }]}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // tuned for iPhone 11
       >
         {/* Header / User Info Card */}
         {user && (
-          <Animated.View style={[styles.userCard, { minHeight: extraHeight }]}>
+          <Animated.View
+            style={[
+              styles.userCard,
+              { minHeight: extraHeight, backgroundColor: theme.surface },
+            ]}
+          >
             <TouchableOpacity
-              style={styles.cardContent}
+              style={[styles.cardContent, { borderColor: theme.border }]}
               onPress={toggleExpand}
               activeOpacity={0.8}
             >
@@ -204,16 +215,32 @@ export default function UserProfileScreen({ navigation }) {
         {/* Header / Chat Profile Bar */}
 
         {/* Input Bar */}
-        <View style={styles.inputBar}>
+        <View
+          style={[
+            styles.inputBar,
+            { backgroundColor: theme.surface, borderTopColor: theme.border },
+          ]}
+        >
           <TextInput
             placeholder="Type a message..."
             value={text}
             onChangeText={setText}
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.inputBackground,
+                borderColor: theme.border,
+                color: theme.text,
+              },
+            ]}
+            placeholderTextColor={theme.textSecondary}
             returnKeyType="send"
             onSubmitEditing={sendMessage}
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
+          <TouchableOpacity
+            style={[styles.sendBtn, { backgroundColor: theme.primary }]}
+            onPress={sendMessage}
+          >
             <Ionicons name="send" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -223,7 +250,7 @@ export default function UserProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f5f7fb" },
+  safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 12 },
 
   // User Card

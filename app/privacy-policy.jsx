@@ -17,9 +17,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function PrivacyPolicy() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [expandedSections, setExpandedSections] = useState({});
 
   const toggleSection = (sectionId) => {
@@ -386,47 +390,47 @@ If you are not satisfied with our response, you may contact the relevant data pr
   ];
 
   const renderSection = (section) => (
-    <View key={section.id} style={styles.section}>
+    <View key={section.id} style={[styles.section, { backgroundColor: colors.surface }]}>
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={() => toggleSection(section.id)}
       >
         <View style={styles.sectionTitleContainer}>
           <section.icon size={20} color="#007AFF" />
-          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{section.title}</Text>
         </View>
-        <Text style={styles.expandIcon}>
+        <Text style={[styles.expandIcon, { color: colors.text }]}>
           {expandedSections[section.id] ? "−" : "+"}
         </Text>
       </TouchableOpacity>
       
       {expandedSections[section.id] && (
         <View style={styles.sectionContent}>
-          <Text style={styles.sectionText}>{section.content}</Text>
+          <Text style={[styles.sectionText, { color: colors.textSecondary }]}>{section.content}</Text>
         </View>
       )}
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Privacy Policy</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Privacy Policy</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Introduction */}
-        <View style={styles.introSection}>
+        <View style={[styles.introSection, { backgroundColor: colors.surface }]}>
           <View style={styles.introHeader}>
             <Shield size={48} color="#007AFF" />
-            <Text style={styles.introTitle}>Privacy Policy</Text>
-            <Text style={styles.introSubtitle}>Last Updated: January 15, 2024</Text>
+            <Text style={[styles.introTitle, { color: colors.text }]}>Privacy Policy</Text>
+            <Text style={[styles.introSubtitle, { color: colors.textSecondary }]}>Last Updated: January 15, 2024</Text>
           </View>
-          <Text style={styles.introText}>
+          <Text style={[styles.introText, { color: colors.textSecondary }]}>
             At DutyCall, we are committed to protecting your privacy and ensuring the security 
             of your personal information. This Privacy Policy explains how we collect, use, 
             and safeguard your data when you use our mobile application.
@@ -439,24 +443,24 @@ If you are not satisfied with our response, you may contact the relevant data pr
         </View>
 
         {/* Summary */}
-        <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Privacy Summary</Text>
+        <View style={[styles.summarySection, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.summaryTitle, { color: colors.text }]}>Privacy Summary</Text>
           <View style={styles.summaryPoints}>
             <View style={styles.summaryPoint}>
               <Shield size={16} color="#32D74B" />
-              <Text style={styles.summaryText}>We protect your personal information with industry-standard security measures</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>We protect your personal information with industry-standard security measures</Text>
             </View>
             <View style={styles.summaryPoint}>
               <Eye size={16} color="#32D74B" />
-              <Text style={styles.summaryText}>You can submit reports anonymously without providing personal information</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>You can submit reports anonymously without providing personal information</Text>
             </View>
             <View style={styles.summaryPoint}>
               <Lock size={16} color="#32D74B" />
-              <Text style={styles.summaryText}>We only share information with relevant authorities as necessary for public safety</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>We only share information with relevant authorities as necessary for public safety</Text>
             </View>
             <View style={styles.summaryPoint}>
               <Users size={16} color="#32D74B" />
-              <Text style={styles.summaryText}>You have control over your data and can request access, correction, or deletion</Text>
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>You have control over your data and can request access, correction, or deletion</Text>
             </View>
           </View>
         </View>

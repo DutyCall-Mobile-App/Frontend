@@ -18,9 +18,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function HelpSupport() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [searchQuery, setSearchQuery] = useState("");
 
   const faqCategories = [
@@ -124,67 +128,67 @@ export default function HelpSupport() {
   })).filter(category => category.questions.length > 0);
 
   const renderFAQItem = (question, answer, index) => (
-    <View key={index} style={styles.faqItem}>
-      <Text style={styles.faqQuestion}>{question}</Text>
-      <Text style={styles.faqAnswer}>{answer}</Text>
+    <View key={index} style={[styles.faqItem, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.faqQuestion, { color: colors.text }]}>{question}</Text>
+      <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{answer}</Text>
     </View>
   );
 
   const renderContactItem = (item, index) => (
-    <TouchableOpacity key={index} style={styles.contactItem}>
-      <View style={styles.contactIconContainer}>
+    <TouchableOpacity key={index} style={[styles.contactItem, { borderBottomColor: colors.border }]}>
+      <View style={[styles.contactIconContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
         <item.icon size={20} color="#007AFF" />
       </View>
       <View style={styles.contactContent}>
-        <Text style={styles.contactTitle}>{item.title}</Text>
-        <Text style={styles.contactSubtitle}>{item.subtitle}</Text>
+        <Text style={[styles.contactTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.contactSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
       </View>
-      <ChevronRight size={20} color="#C7C7CC" />
+      <ChevronRight size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
   const renderQuickAction = (item, index) => (
-    <TouchableOpacity key={index} style={styles.quickActionItem} onPress={item.action}>
-      <View style={styles.quickActionIconContainer}>
+    <TouchableOpacity key={index} style={[styles.quickActionItem, { borderBottomColor: colors.border }]} onPress={item.action}>
+      <View style={[styles.quickActionIconContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
         <item.icon size={20} color="#007AFF" />
       </View>
       <View style={styles.quickActionContent}>
-        <Text style={styles.quickActionTitle}>{item.title}</Text>
-        <Text style={styles.quickActionSubtitle}>{item.subtitle}</Text>
+        <Text style={[styles.quickActionTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.quickActionSubtitle, { color: colors.textSecondary }]}>{item.subtitle}</Text>
       </View>
-      <ChevronRight size={20} color="#C7C7CC" />
+      <ChevronRight size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
   const renderSection = (title, items, renderFunction) => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContainer}>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
         {items.map((item, index) => renderFunction(item, index))}
       </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Help & Support</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Help & Support</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Search */}
-        <View style={styles.searchContainer}>
-          <Search size={16} color="#8E8E93" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+          <Search size={16} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search for help..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={colors.textSecondary}
           />
         </View>
 
@@ -193,8 +197,8 @@ export default function HelpSupport() {
         {/* FAQ */}
         {filteredFAQs.map((category) => (
           <View key={category.title} style={styles.section}>
-            <Text style={styles.sectionTitle}>{category.title}</Text>
-            <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{category.title}</Text>
+            <View style={[styles.sectionContainer, { backgroundColor: colors.surface }]}>
               {category.questions.map((faq, index) => renderFAQItem(faq.question, faq.answer, index))}
             </View>
           </View>
@@ -203,9 +207,9 @@ export default function HelpSupport() {
         {/* No Results */}
         {searchQuery && filteredFAQs.length === 0 && (
           <View style={styles.noResultsContainer}>
-            <HelpCircle size={48} color="#8E8E93" />
-            <Text style={styles.noResultsTitle}>No results found</Text>
-            <Text style={styles.noResultsSubtitle}>
+            <HelpCircle size={48} color={colors.textSecondary} />
+            <Text style={[styles.noResultsTitle, { color: colors.text }]}>No results found</Text>
+            <Text style={[styles.noResultsSubtitle, { color: colors.textSecondary }]}>
               Try searching with different keywords or contact our support team.
             </Text>
           </View>

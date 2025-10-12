@@ -23,9 +23,13 @@ import {
   View,
 } from "react-native";
 import io from "socket.io-client";
+import { useTheme } from "../context/ThemeContext";
+import { getTheme } from "../utils/theme";
 
 export default function Dashboard() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [notifications, setNotifications] = useState([]);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -140,7 +144,7 @@ export default function Dashboard() {
     const items = [];
     for (let i = 0; i < 12; i++) {
       items.push(
-        <Text key={i} style={styles.dutyCallText}>
+        <Text key={i} style={[styles.dutyCallText, { color: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(3, 27, 53, 0.03)' }]}>
           DUTY CALL
         </Text>
       );
@@ -149,7 +153,7 @@ export default function Dashboard() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <DutyCallBackground />
       <TouchableOpacity
         style={styles.overlay}
@@ -172,15 +176,15 @@ export default function Dashboard() {
                 <User size={24} color="#007AFF" />
               </TouchableOpacity>
               {showProfileDropdown && (
-                <View style={styles.profileDropdown}>
+                <View style={[styles.profileDropdown, { backgroundColor: colors.surface }]}>
                   <TouchableOpacity
-                    style={styles.dropdownItem}
+                    style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleProfileOption("profile")}
                   >
-                    <Text style={styles.dropdownText}>Profile</Text>
+                    <Text style={[styles.dropdownText, { color: colors.text }]}>Profile</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.dropdownItem}
+                    style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleProfileOption("logout")}
                   >
                     <Text style={[styles.dropdownText, styles.logoutText]}>Logout</Text>
@@ -206,14 +210,14 @@ export default function Dashboard() {
 
           {/* My Reports */}
           <TouchableOpacity
-            style={styles.myReportsButton}
+            style={[styles.myReportsButton, { backgroundColor: colors.surface }]}
             onPress={() => router.push("/my-reports")}
           >
             <View style={styles.myReportsContent}>
               <FileText size={20} color="#007AFF" />
-              <Text style={styles.myReportsText}>My Reports</Text>
+              <Text style={[styles.myReportsText, { color: colors.text }]}>My Reports</Text>
             </View>
-            <ChevronRight size={20} color="#C7C7CC" />
+            <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Notifications */}
@@ -245,7 +249,6 @@ export default function Dashboard() {
                         {new Date(notification.createdAt || notification.timestamp).toLocaleString()}
                       </Text>
                     </View>
-                  </View>
                 </TouchableOpacity>
               );
             })}

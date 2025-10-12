@@ -17,9 +17,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function RateApp() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -147,35 +151,35 @@ export default function RateApp() {
   const renderStore = (store) => (
     <TouchableOpacity
       key={store.name}
-      style={styles.storeItem}
+      style={[styles.storeItem, { borderBottomColor: colors.border }]}
       onPress={() => handleStoreRating(store)}
     >
       <Text style={styles.storeIcon}>{store.icon}</Text>
       <View style={styles.storeInfo}>
-        <Text style={styles.storeName}>{store.name}</Text>
-        <Text style={styles.storeDescription}>{store.description}</Text>
+        <Text style={[styles.storeName, { color: colors.text }]}>{store.name}</Text>
+        <Text style={[styles.storeDescription, { color: colors.textSecondary }]}>{store.description}</Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Rate App</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Rate App</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Rating Section */}
-        <View style={styles.ratingSection}>
+        <View style={[styles.ratingSection, { backgroundColor: colors.surface }]}>
           <View style={styles.ratingHeader}>
             <Heart size={32} color="#FF3B30" />
-            <Text style={styles.ratingTitle}>How was your experience?</Text>
-            <Text style={styles.ratingSubtitle}>
+            <Text style={[styles.ratingTitle, { color: colors.text }]}>How was your experience?</Text>
+            <Text style={[styles.ratingSubtitle, { color: colors.textSecondary }]}>
               Your feedback helps us improve DutyCall for everyone
             </Text>
           </View>
@@ -192,16 +196,16 @@ export default function RateApp() {
 
           {/* Feedback Input */}
           <View style={styles.feedbackSection}>
-            <Text style={styles.feedbackLabel}>Tell us more (optional)</Text>
+            <Text style={[styles.feedbackLabel, { color: colors.text }]}>Tell us more (optional)</Text>
             <TextInput
-              style={styles.feedbackInput}
+              style={[styles.feedbackInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
               value={feedback}
               onChangeText={setFeedback}
               placeholder="What did you like? What could we improve?"
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
 
@@ -221,21 +225,21 @@ export default function RateApp() {
 
         {/* App Store Ratings */}
         <View style={styles.storeSection}>
-          <Text style={styles.sectionTitle}>Rate on App Stores</Text>
-          <View style={styles.storeContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Rate on App Stores</Text>
+          <View style={[styles.storeContainer, { backgroundColor: colors.surface }]}>
             {appStores.map(renderStore)}
           </View>
         </View>
 
         {/* Share Section */}
         <View style={styles.shareSection}>
-          <Text style={styles.sectionTitle}>Share DutyCall</Text>
-          <View style={styles.shareContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Share DutyCall</Text>
+          <View style={[styles.shareContainer, { backgroundColor: colors.surface }]}>
             <View style={styles.shareContent}>
               <Share size={24} color="#007AFF" />
               <View style={styles.shareInfo}>
-                <Text style={styles.shareTitle}>Help others discover DutyCall</Text>
-                <Text style={styles.shareDescription}>
+                <Text style={[styles.shareTitle, { color: colors.text }]}>Help others discover DutyCall</Text>
+                <Text style={[styles.shareDescription, { color: colors.textSecondary }]}>
                   Share the app with friends and family to help improve public safety in Sri Lanka
                 </Text>
               </View>
@@ -248,10 +252,10 @@ export default function RateApp() {
 
         {/* Thank You Message */}
         {hasSubmitted && (
-          <View style={styles.thankYouSection}>
+          <View style={[styles.thankYouSection, { backgroundColor: colors.surface }]}>
             <Heart size={48} color="#FF3B30" />
-            <Text style={styles.thankYouTitle}>Thank You!</Text>
-            <Text style={styles.thankYouText}>
+            <Text style={[styles.thankYouTitle, { color: colors.text }]}>Thank You!</Text>
+            <Text style={[styles.thankYouText, { color: colors.textSecondary }]}>
               Your feedback is valuable to us. We're constantly working to improve 
               DutyCall based on user input like yours.
             </Text>

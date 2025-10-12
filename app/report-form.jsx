@@ -32,10 +32,14 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
 
 export default function ReportForm() {
   const router = useRouter();
   const { categoryId, subcategory, categoryTitle } = useLocalSearchParams();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   const [postAnonymous, setPostAnonymous] = useState(true);
   const [fullName, setFullName] = useState("");
@@ -751,16 +755,16 @@ export default function ReportForm() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
           <ChevronLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>{subcategory}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{subcategory}</Text>
       </View>
 
       <ScrollView
@@ -771,9 +775,9 @@ export default function ReportForm() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Anonymous toggle */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Post Anonymous</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Post Anonymous</Text>
             <Switch
               value={postAnonymous}
               onValueChange={(value) => {
@@ -792,15 +796,15 @@ export default function ReportForm() {
         </View>
 
         {/* Location */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <MapPin size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>What is the Location?</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>What is the Location?</Text>
           </View>
 
           {location ? (
-            <View style={styles.selectedLocationContainer}>
-              <Text style={styles.selectedLocationText}>
+            <View style={[styles.selectedLocationContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+              <Text style={[styles.selectedLocationText, { color: colors.text }]}>
                 {location.address}
               </Text>
               <TouchableOpacity onPress={clearLocation}>
@@ -810,11 +814,12 @@ export default function ReportForm() {
           ) : (
             <>
               <TextInput
-                style={styles.autocompleteInput}
+                style={[styles.autocompleteInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
                 placeholder="Search for a location"
                 value={query}
                 onChangeText={searchPlaces}
                 onFocus={() => handleTextInputFocus(200)}
+                placeholderTextColor={colors.textSecondary}
               />
               {results.length > 0 && (
                 <FlatList
@@ -822,15 +827,15 @@ export default function ReportForm() {
                   keyExtractor={(item) => item.place_id}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={styles.resultItem}
+                      style={[styles.resultItem, { borderBottomColor: colors.border }]}
                       onPress={() =>
                         handleSelectPlace(item.place_id, item.description)
                       }
                     >
-                      <Text>{item.description}</Text>
+                      <Text style={{ color: colors.text }}>{item.description}</Text>
                     </TouchableOpacity>
                   )}
-                  style={styles.resultsList}
+                  style={[styles.resultsList, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   scrollEnabled={false} // Disable FlatList scrolling
                 />
               )}
@@ -938,12 +943,12 @@ export default function ReportForm() {
         </View>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Full Description</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Full Description</Text>
 
           {/* Language Selector for Speech Recognition */}
-          <View style={styles.languageSelectorContainer}>
-            <Text style={styles.languageSelectorLabel}>Speech Language:</Text>
+          <View style={[styles.languageSelectorContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
+            <Text style={[styles.languageSelectorLabel, { color: colors.text }]}>Speech Language:</Text>
             <View style={styles.languageButtons}>
               {languageOptions.map((option) => (
                 <TouchableOpacity
@@ -958,6 +963,7 @@ export default function ReportForm() {
                   <Text
                     style={[
                       styles.languageButtonText,
+                      { color: selectedLanguage === option.code ? '#FFFFFF' : colors.text },
                       selectedLanguage === option.code &&
                         styles.languageButtonTextActive,
                     ]}
@@ -970,7 +976,7 @@ export default function ReportForm() {
           </View>
 
           <TextInput
-            style={styles.textArea}
+            style={[styles.textArea, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             placeholder="Describe the issue in detail..."
             multiline
             numberOfLines={4}
@@ -978,6 +984,7 @@ export default function ReportForm() {
             onChangeText={setDescription}
             textAlignVertical="top"
             onFocus={() => handleTextInputFocus(400)}
+            placeholderTextColor={colors.textSecondary}
           />
 
           {/* Speech Control Bar - Always visible */}
@@ -1052,29 +1059,29 @@ export default function ReportForm() {
         </View>
 
         {/* Evidence */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Evidence {postAnonymous ? "(Required)" : "(Optional)"}
           </Text>
           <View style={styles.evidenceContainer}>
             <TouchableOpacity
-              style={styles.evidenceButton}
+              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
               onPress={captureMedia}
             >
               <Camera size={24} color="#8E8E93" />
-              <Text style={styles.evidenceText}>Capture Media</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>Capture Media</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.evidenceButton}
+              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
               onPress={chooseMedia}
             >
               <ImageIcon size={24} color="#8E8E93" />
-              <Text style={styles.evidenceText}>Choose Media</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>Choose Media</Text>
             </TouchableOpacity>
           </View>
           {media.length > 0 && (
             <>
-              <Text style={styles.evidenceText}>
+              <Text style={[styles.evidenceText, { color: colors.textSecondary }]}>
                 {media.length} media item(s) selected
               </Text>
               <FlatList
@@ -1108,40 +1115,43 @@ export default function ReportForm() {
         </View>
 
         {/* Contact info */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <Users size={20} color="#007AFF" />
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Contact Info {postAnonymous ? "(Not Required)" : "(Required)"}
             </Text>
           </View>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             placeholder="Full Name"
             value={fullName}
             onChangeText={setFullName}
             editable={!postAnonymous}
             onFocus={() => handleTextInputFocus(800)}
+            placeholderTextColor={colors.textSecondary}
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             placeholder="NIC number"
             value={nicNumber}
             onChangeText={setNicNumber}
             editable={!postAnonymous}
             onFocus={() => handleTextInputFocus(850)}
+            placeholderTextColor={colors.textSecondary}
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
             placeholder="Contact number"
             value={contactNumber}
             onChangeText={setContactNumber}
             keyboardType="phone-pad"
             editable={!postAnonymous}
             onFocus={() => handleTextInputFocus(900)}
+            placeholderTextColor={colors.textSecondary}
           />
         </View>
 

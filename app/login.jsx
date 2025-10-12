@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,9 +17,13 @@ import {
   View
 } from 'react-native';
 import API from './utils/api';
+import { useTheme } from './context/ThemeContext';
+import { getTheme } from './utils/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { isDarkMode } = useTheme();
+  const colors = getTheme(isDarkMode);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -146,31 +151,36 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="shield-checkmark" size={50} color="#1877F2" />
+          <View style={[styles.logoContainer, { backgroundColor: isDarkMode ? colors.surface : '#E3F2FD' }]}>
+            <Image
+              source={require('../assets/images/logo_app.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to continue</Text>
         </View>
 
         {/* Form */}
-        <View style={styles.formContainer}>
+        <View style={[styles.formContainer, { backgroundColor: colors.surface }]}>
           {/* Email */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrapper, emailError && styles.inputError]}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }, emailError && styles.inputError]}>
+              <Ionicons name="mail-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter your email"
+                placeholderTextColor={colors.textSecondary}
                 value={email}
                 onChangeText={validateEmail}
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -184,19 +194,20 @@ export default function LoginScreen() {
 
           {/* Password */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputWrapper, passwordError && styles.inputError]}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.border }, passwordError && styles.inputError]}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 placeholder="Enter your password"
+                placeholderTextColor={colors.textSecondary}
                 value={password}
                 onChangeText={validatePassword}
                 secureTextEntry={!showPassword}
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPassword((p) => !p)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#666" />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
@@ -214,7 +225,7 @@ export default function LoginScreen() {
 
           {/* Optional: Register */}
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
+            <Text style={[styles.registerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
             {/* If you have a Register route, change to router.push('/register') */}
            <TouchableOpacity onPress={() => router.push('/register')}>
   <Text style={styles.registerLink}>Register</Text>
@@ -249,9 +260,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f2f5' },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   header: { alignItems: 'center', marginBottom: 40 },
-  iconContainer: {
-    width: 100, height: 100, borderRadius: 50, backgroundColor: '#E3F2FD',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+  logoContainer: {
+    width: 200,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 0,
+    marginLeft:50,
+    borderRadius: 100,
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: { fontSize: 28, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#666' },
