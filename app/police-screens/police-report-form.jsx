@@ -46,7 +46,7 @@ export default function PoliceReportForm() {
   const GOOGLE_API_KEY =
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
-  const API_URL = "http://10.92.81.249:3000/api/reports/create";
+  const API_URL = "http://172.20.10.9:3000/api/reports/create";
 
   // Location functions (same as civilian form)
   const requestLocationPermission = async () => {

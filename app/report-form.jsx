@@ -86,7 +86,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.4:3000/api/reports/create";
+  const API_URL = "http://172.20.10.9:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
@@ -103,7 +103,7 @@ export default function ReportForm() {
         {
           method: "POST",
           headers: { 
-            "Authorization": `Bearer ${token}`
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             config: {
@@ -345,15 +345,17 @@ export default function ReportForm() {
 
       // Try each configuration until one works
       for (let i = 0; i < configs.length; i++) {
-        const config = configs[i];
-        console.log(`Trying config ${i + 1}:`, config);
-
         try {
+          const config = configs[i];
+          console.log(`Trying config ${i + 1}:`, config);
+
           const response = await fetch(
             `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
             {
               method: "POST",
-              headers: { "Authorization": `Bearer ${token}`},
+              headers: { 
+                "Content-Type": "application/json"
+              },
               body: JSON.stringify({
                 config,
                 audio: {

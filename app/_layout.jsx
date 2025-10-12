@@ -4,7 +4,7 @@ import { Redirect, Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ThemeProvider } from "./context/ThemeContext";
 
 const PUBLIC_ROUTES = new Set(["/login", "/register", "/onboard"]);
@@ -67,32 +67,30 @@ export default function RootLayout() {
   }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
-    <ThemeProvider>
-      <Stack screenOptions={{ headerShown: false }} initialRouteName="onboard">
-        <StatusBar style="auto" />
-        {/* Onboarding */}
-        <Stack.Screen name="onboard" />
+      <ThemeProvider>
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
+          <StatusBar style="auto" />
+          {/* Onboarding */}
+          <Stack.Screen name="onboard" />
 
-        {/* Public */}
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
+          {/* Public */}
+          <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
 
-        {/* Tabs group (your Home, Add Report, Settings) */}
-        <Stack.Screen name="(tabs)" />
+          {/* Tabs group (your Home, Add Report, Settings) */}
+          <Stack.Screen name="(tabs)" />
 
-        {/* Private routes (short aliases added in step 2) */}
-        <Stack.Screen name="police-dashboard" />
-        <Stack.Screen name="police-chat-detail" />
-        <Stack.Screen name="user-profile" />
+          {/* Private routes (short aliases added in step 2) */}
+          <Stack.Screen name="police-dashboard" />
+          <Stack.Screen name="police-chat-detail" />
+          <Stack.Screen name="user-profile" />
 
-        <Stack.Screen name="emergency-sos"  />
-          <Stack.Screen name="my-reports"  />
-           <Stack.Screen name="report-form"  />
-           <Stack.Screen name="report-details"  />
-      </Stack>
-    </ThemeProvider>
-    </Stack>
+          <Stack.Screen name="emergency-sos" />
+          <Stack.Screen name="my-reports" />
+          <Stack.Screen name="report-form" />
+          <Stack.Screen name="report-details" />
+        </Stack>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

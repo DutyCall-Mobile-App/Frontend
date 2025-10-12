@@ -1,7 +1,7 @@
 // API Service for backend communication
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const BASE_URL = "http://10.92.81.249:3000/api";
-const FILE_BASE_URL = "http://10.92.81.249:3000"; // no /api
+const BASE_URL = "http://172.20.10.9:3000/api";
+const FILE_BASE_URL = "http://172.20.10.9:3000"; // no /api
 
 class ApiService {
   // Get JWT token from storage
@@ -282,10 +282,12 @@ class ApiService {
       title: report.description.substring(0, 50) + (report.description.length > 50 ? '...' : ''),
       priority: report.priority || 'LOW',
       status: report.status,
+      category: report.category || 'Uncategorized',
       reporter: report.full_name || 'Anonymous',
       timeAgo: this.getTimeAgo(report.createdAt),
       location: report.location?.address || `${report.location?.latitude}, ${report.location?.longitude}`,
       createdAt: new Date(report.createdAt),
+      date: report.createdAt, // Add date field for UI compatibility
       icon: this.getCategoryIcon(report.category),
       description: report.description,
       fullName: report.full_name,
@@ -327,52 +329,7 @@ class ApiService {
       'environmental': 'nature',
       'civil': 'gavel',
       'community': 'people'
-    const normalizeStatus = (status) => {
-      switch (status?.toLowerCase()) {
-        case "submitted":
-          return "Submitted";
-        case "under review":
-          return "Under Review";
-        case "in progress":
-          return "In Progress";
-        case "action taken":
-          return "Action Taken";
-        case "resolved":
-          return "Resolved";
-        default:
-          return status;
-      }
     };
-
-    return {
-      id: report._id,
-      title:
-        report.description.length > 50
-          ? report.description.substring(0, 50) + "..."
-          : report.description,
-      status: normalizeStatus(report.status),
-      date: report.createdAt
-        ? new Date(report.createdAt).toISOString().split("T")[0]
-        : "",
-      category: report.category,
-      location:
-        report.location?.address ||
-        `${report.location?.latitude}, ${report.location?.longitude}`,
-      evidence:
-        report.evidence?.map((ev) => ({
-          ...ev,
-          fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
-        })) || [],
-      description: report.description,
-      fullName: report.full_name,
-      nic: report.nic,
-      contactNumber: report.contact_number,
-      latitude: report.location?.latitude,
-      longitude: report.location?.longitude,
-      createdAt: report.createdAt,
-      updatedAt: report.updatedAt,
-    };
-
     return iconMap[category] || 'report';
   }
 }

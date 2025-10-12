@@ -157,7 +157,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
-          <View style={[styles.logoContainer, { backgroundColor: isDarkMode ? colors.surface : '#E3F2FD' }]}>
+          <View style={[styles.logoContainer]}>
             <Image
               source={require('../assets/images/logo_app.png')}
               style={styles.logo}
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 0,
     marginLeft:50,
-    borderRadius: 100,
   },
   logo: {
     width: '100%',
