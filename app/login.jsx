@@ -1,7 +1,7 @@
 // app/login.jsx
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import jwt_decode from 'jwt-decode';
+// ✅ REMOVED: import jwt_decode from 'jwt-decode';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -17,8 +17,26 @@ import {
   View
 } from 'react-native';
 import API from './utils/api';
-import { useTheme } from './context/ThemeContext';
-import { getTheme } from './utils/theme';
+import { useTheme } from "./context/ThemeContext";
+import { getTheme } from "./utils/theme";
+
+// ✅ ADDED: Manual JWT decoder - No library needed!
+const decodeToken = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -79,16 +97,19 @@ export default function LoginScreen() {
         const role = await AsyncStorage.getItem('role');
 
         if (token && role) {
-          // Decode token
-          const decoded = jwt_decode(token);
-          const userId = decoded.id;
-          console.log('Loaded userId from token:', userId);
+          // ✅ FIXED: Use new decode function
+          const decoded = decodeToken(token);
+          
+          if (decoded) {
+            const userId = decoded.id;
+            console.log('Loaded userId from token:', userId);
 
-          // Route by role
-          if (role === 'policeman') {
-            router.replace('/police');
-          } else {
-            router.replace('/'); // home tab
+            // Route by role
+            if (role === 'policeman') {
+              router.replace('/police');
+            } else {
+              router.replace('/'); // home tab
+            }
           }
         }
       } catch (e) {
@@ -226,11 +247,9 @@ export default function LoginScreen() {
           {/* Optional: Register */}
           <View style={styles.registerContainer}>
             <Text style={[styles.registerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
-            {/* If you have a Register route, change to router.push('/register') */}
-           <TouchableOpacity onPress={() => router.push('/register')}>
-  <Text style={styles.registerLink}>Register</Text>
-</TouchableOpacity>
-
+            <TouchableOpacity onPress={() => router.push('/register')}>
+              <Text style={styles.registerLink}>Register</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
