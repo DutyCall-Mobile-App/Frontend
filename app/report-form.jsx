@@ -86,7 +86,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.9:3000/api/reports/create";
+  const API_URL = "http://172.20.10.4:3000/api/reports/create";
 
   // Language options for speech recognition
   const languageOptions = [
@@ -102,7 +102,7 @@ export default function ReportForm() {
         `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
         {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -353,7 +353,7 @@ export default function ReportForm() {
             `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
             {
               method: "POST",
-              headers: { 
+              headers: {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
@@ -531,12 +531,9 @@ export default function ReportForm() {
         // Fallback to Expo's reverse geocoding if Google API fails
         const [address] = await Location.reverseGeocodeAsync(coords);
         const formattedAddress = address
-          ? `${address.street || ""}${address.street ? ", " : ""}${
-              address.district || ""
-            }${address.district ? ", " : ""}${address.city || ""}${
-              address.city ? ", " : ""
-            }${address.region || ""}${address.region ? ", " : ""}${
-              address.postalCode || ""
+          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""
+            }${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""
+            }${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""
             }${address.postalCode ? ", " : ""}${address.country || ""}`.replace(
               /,\s*$/,
               ""
@@ -776,7 +773,8 @@ export default function ReportForm() {
       });
 
       // Append priority to form data
-      formData.append("priority", selectedPriority);
+      formData.append("priority", selectedPriority.toUpperCase());
+
       // Get token
       const token = await AsyncStorage.getItem("token");
       if (!token) throw new Error("User token not found. Please login again.");
@@ -968,16 +966,11 @@ export default function ReportForm() {
                         coords
                       );
                       formattedAddress = address
-                        ? `${address.street || ""}${
-                            address.street ? ", " : ""
-                          }${address.district || ""}${
-                            address.district ? ", " : ""
-                          }${address.city || ""}${address.city ? ", " : ""}${
-                            address.region || ""
-                          }${address.region ? ", " : ""}${
-                            address.postalCode || ""
-                          }${address.postalCode ? ", " : ""}${
-                            address.country || ""
+                        ? `${address.street || ""}${address.street ? ", " : ""
+                          }${address.district || ""}${address.district ? ", " : ""
+                          }${address.city || ""}${address.city ? ", " : ""}${address.region || ""
+                          }${address.region ? ", " : ""}${address.postalCode || ""
+                          }${address.postalCode ? ", " : ""}${address.country || ""
                           }`.replace(/,\s*$/, "")
                         : "Selected Location";
                     }
@@ -1011,7 +1004,7 @@ export default function ReportForm() {
                   style={[
                     styles.languageButton,
                     selectedLanguage === option.code &&
-                      styles.languageButtonActive,
+                    styles.languageButtonActive,
                   ]}
                   onPress={() => setSelectedLanguage(option.code)}
                 >
@@ -1020,7 +1013,7 @@ export default function ReportForm() {
                       styles.languageButtonText,
                       { color: selectedLanguage === option.code ? '#FFFFFF' : colors.text },
                       selectedLanguage === option.code &&
-                        styles.languageButtonTextActive,
+                      styles.languageButtonTextActive,
                     ]}
                   >
                     {option.name}

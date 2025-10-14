@@ -65,13 +65,13 @@ export default function Dashboard() {
         }
 
         // Fetch notifications
-        const res = await axios.get("http://172.20.10.9:3000/api/notifications", {
+        const res = await axios.get("http://172.20.10.4:3000/api/notifications", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setNotifications(res.data.data);
 
         // Setup socket with auth
-        socket = io("http://172.20.10.9:3000", { auth: { token } });
+        socket = io("http://172.20.10.4:3000", { auth: { token } });
 
         socket.on("connect", () => console.log("Socket connected:", socket.id));
 
@@ -103,7 +103,7 @@ export default function Dashboard() {
     try {
       const token = await AsyncStorage.getItem("token");
       const res = await axios.patch(
-        `http://172.20.10.9:3000/api/notifications/${_id}/read`,
+        `http://172.20.10.4:3000/api/notifications/${_id}/read`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
