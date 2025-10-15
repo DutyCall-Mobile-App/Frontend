@@ -86,7 +86,7 @@ export default function ReportForm() {
     Constants.expoConfig?.extra?.googleApiKey ||
     "AIzaSyB3tqIAvpAubH7frNjtrh3z8bWEsq0_zxY";
 
-  const API_URL = "http://172.20.10.4:3000/api/reports/create";
+  const API_URL = `${process.env.EXPO_PUBLIC_API_BASE_URL}/reports/create`;
 
   // Language options for speech recognition
   const languageOptions = [
