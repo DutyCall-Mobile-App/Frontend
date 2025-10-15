@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-  logo: { width: 50, height: 50 },
+  logo: { width: 70, height: 70 },
   profileContainer: { position: "relative" },
   profileButton: {
     width: 36,

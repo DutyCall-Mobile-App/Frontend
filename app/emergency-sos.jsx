@@ -50,15 +50,19 @@ export default function EmergencySOS() {
       if (data.results && data.results.length > 0) {
         // Try to get the most specific address first
         let formattedAddress = data.results[0].formatted_address;
-        
+
         // If the first result is too generic, try to find a more specific one
         if (data.results.length > 1) {
           for (let i = 0; i < data.results.length; i++) {
             const result = data.results[i];
             const types = result.types || [];
-            
+
             // Prioritize street_address, route, or premise
-            if (types.includes('street_address') || types.includes('route') || types.includes('premise')) {
+            if (
+              types.includes("street_address") ||
+              types.includes("route") ||
+              types.includes("premise")
+            ) {
               formattedAddress = result.formatted_address;
               break;
             }
@@ -67,9 +71,21 @@ export default function EmergencySOS() {
         return formattedAddress;
       } else {
         // Fallback to Expo's reverse geocoding if Google API fails
-        const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const [address] = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
         const formattedAddress = address
-          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""}${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""}${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""}${address.postalCode ? ", " : ""}${address.country || ""}`.replace(/,\s*$/, '')
+          ? `${address.street || ""}${address.street ? ", " : ""}${
+              address.district || ""
+            }${address.district ? ", " : ""}${address.city || ""}${
+              address.city ? ", " : ""
+            }${address.region || ""}${address.region ? ", " : ""}${
+              address.postalCode || ""
+            }${address.postalCode ? ", " : ""}${address.country || ""}`.replace(
+              /,\s*$/,
+              ""
+            )
           : "Current Location";
         return formattedAddress;
       }
@@ -100,7 +116,7 @@ export default function EmergencySOS() {
       });
 
       const { latitude, longitude } = location.coords;
-      
+
       // Get readable address from coordinates
       const address = await getAddressFromCoordinates(latitude, longitude);
       setCurrentLocation({ latitude, longitude, address });
@@ -117,46 +133,131 @@ export default function EmergencySOS() {
   const findNearbyPoliceStations = useCallback(
     async (latitude, longitude) => {
       try {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=10000&type=police&key=${GOOGLE_API_KEY}`
-        );
+        // Increase search radius and add fallback searches
+        const searches = [
+          { radius: 10000, type: "police" },
+          { radius: 25000, type: "police" },
+          { radius: 10000, keyword: "police station" },
+          { radius: 25000, keyword: "police station" },
+        ];
 
-        const data = await response.json();
+        let stationsWithDetails = [];
 
-        if (data.status === "OK" && data.results) {
-          const stationsWithDetails = await Promise.all(
-            data.results.slice(0, 10).map(async (station) => {
-              // Get additional details for each station
-              const details = await getPlaceDetails(station.place_id);
-              const distance = calculateDistance(
-                latitude,
-                longitude,
-                station.geometry.location.lat,
-                station.geometry.location.lng
+        for (const search of searches) {
+          console.log(
+            `Searching with radius: ${search.radius}, type: ${
+              search.type || search.keyword
+            }`
+          );
+
+          let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${search.radius}&key=${GOOGLE_API_KEY}`;
+
+          if (search.type) {
+            url += `&type=${search.type}`;
+          } else if (search.keyword) {
+            url += `&keyword=${encodeURIComponent(search.keyword)}`;
+          }
+
+          const response = await fetch(url);
+          const data = await response.json();
+
+          console.log(`API Response status: ${data.status}`);
+          console.log(`Results found: ${data.results?.length || 0}`);
+
+          if (data.status === "OK" && data.results && data.results.length > 0) {
+            const processedStations = await Promise.all(
+              data.results.slice(0, 10).map(async (station) => {
+                const details = await getPlaceDetails(station.place_id);
+                const distance = calculateDistance(
+                  latitude,
+                  longitude,
+                  station.geometry.location.lat,
+                  station.geometry.location.lng
+                );
+
+                return {
+                  id: station.place_id,
+                  name: station.name,
+                  address:
+                    station.vicinity ||
+                    station.formatted_address ||
+                    "Address not available",
+                  location: station.geometry.location,
+                  rating: station.rating || "N/A",
+                  distance: distance,
+                  phone: details.phone || "Not available",
+                  isOpen: station.opening_hours?.open_now || null,
+                };
+              })
+            );
+
+            stationsWithDetails = [
+              ...stationsWithDetails,
+              ...processedStations,
+            ];
+            break; // Exit loop if we found results
+          } else if (data.status === "ZERO_RESULTS") {
+            console.log("No results for this search, trying next...");
+            continue;
+          } else {
+            console.error(
+              `API Error: ${data.status} - ${
+                data.error_message || "Unknown error"
+              }`
+            );
+            if (data.status === "REQUEST_DENIED") {
+              setErrorMessage(
+                "API access denied. Please check your API key configuration."
               );
+              setLoading(false);
+              return;
+            }
+          }
+        }
 
-              return {
-                id: station.place_id,
-                name: station.name,
-                address: station.vicinity,
-                location: station.geometry.location,
-                rating: station.rating || "N/A",
-                distance: distance,
-                phone: details.phone || "Not available",
-                isOpen: station.opening_hours?.open_now || null,
-              };
-            })
+        if (stationsWithDetails.length > 0) {
+          // Remove duplicates based on place_id
+          const uniqueStations = stationsWithDetails.filter(
+            (station, index, self) =>
+              index === self.findIndex((s) => s.id === station.id)
           );
 
           // Sort by distance
-          stationsWithDetails.sort((a, b) => a.distance - b.distance);
-          setPoliceStations(stationsWithDetails);
+          uniqueStations.sort((a, b) => a.distance - b.distance);
+          setPoliceStations(uniqueStations);
         } else {
-          setErrorMessage("No police stations found in your area");
+          // Fallback: Show generic emergency numbers
+          setErrorMessage(
+            "No police stations found in your area. Please dial emergency services directly."
+          );
+          setPoliceStations([
+            {
+              id: "emergency-1",
+              name: "Emergency Services",
+              address: "Dial for immediate assistance",
+              location: { lat: latitude, lng: longitude },
+              rating: "N/A",
+              distance: 0,
+              phone: "911", // or your country's emergency number
+              isOpen: true,
+            },
+            {
+              id: "emergency-2",
+              name: "Local Police",
+              address: "Contact local authorities",
+              location: { lat: latitude, lng: longitude },
+              rating: "N/A",
+              distance: 0,
+              phone: "100", // or your country's police number
+              isOpen: true,
+            },
+          ]);
         }
       } catch (error) {
         console.error("Error finding police stations:", error);
-        setErrorMessage("Failed to find nearby police stations");
+        setErrorMessage(
+          "Failed to find nearby police stations. Network error occurred."
+        );
       } finally {
         setLoading(false);
       }
@@ -216,10 +317,16 @@ export default function EmergencySOS() {
     <View style={[styles.stationCard, { backgroundColor: colors.surface }]}>
       <View style={styles.stationHeader}>
         <View style={styles.stationInfo}>
-          <Text style={[styles.stationName, { color: colors.text }]}>{item.name}</Text>
+          <Text style={[styles.stationName, { color: colors.text }]}>
+            {item.name}
+          </Text>
           <View style={styles.addressContainer}>
             <MapPin size={14} color={colors.textSecondary} />
-            <Text style={[styles.stationAddress, { color: colors.textSecondary }]}>{item.address}</Text>
+            <Text
+              style={[styles.stationAddress, { color: colors.textSecondary }]}
+            >
+              {item.address}
+            </Text>
           </View>
         </View>
         <View style={styles.distanceContainer}>
@@ -238,7 +345,9 @@ export default function EmergencySOS() {
       <View style={styles.stationDetails}>
         <View style={styles.detailRow}>
           <Phone size={16} color="#007AFF" />
-          <Text style={[styles.detailText, { color: colors.text }]}>{item.phone}</Text>
+          <Text style={[styles.detailText, { color: colors.text }]}>
+            {item.phone}
+          </Text>
         </View>
         {item.rating !== "N/A" && (
           <View style={styles.detailRow}>
@@ -283,7 +392,15 @@ export default function EmergencySOS() {
       </View>
 
       {/* Emergency Alert */}
-      <View style={[styles.emergencyAlert, { backgroundColor: isDarkMode ? '#5f1e1e' : '#FFEBEE', borderColor: isDarkMode ? '#8f2e2e' : '#FFCDD2' }]}>
+      <View
+        style={[
+          styles.emergencyAlert,
+          {
+            backgroundColor: isDarkMode ? "#5f1e1e" : "#FFEBEE",
+            borderColor: isDarkMode ? "#8f2e2e" : "#FFCDD2",
+          },
+        ]}
+      >
         <AlertTriangle size={24} color="#FF3B30" />
         <Text style={styles.emergencyText}>
           Emergency Services - Nearby Police Stations
@@ -311,10 +428,24 @@ export default function EmergencySOS() {
       ) : (
         <ScrollView style={styles.content}>
           {currentLocation && (
-            <View style={[styles.locationInfo, { backgroundColor: isDarkMode ? '#1e3a5f' : '#E3F2FD' }]}>
+            <View
+              style={[
+                styles.locationInfo,
+                { backgroundColor: isDarkMode ? "#1e3a5f" : "#E3F2FD" },
+              ]}
+            >
               <MapPin size={20} color="#007AFF" />
-              <Text style={[styles.locationText, { color: isDarkMode ? '#64B5F6' : '#1976D2' }]}>
-                Your current location: {currentLocation.address || `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`}
+              <Text
+                style={[
+                  styles.locationText,
+                  { color: isDarkMode ? "#64B5F6" : "#1976D2" },
+                ]}
+              >
+                Your current location:{" "}
+                {currentLocation.address ||
+                  `${currentLocation.latitude.toFixed(
+                    6
+                  )}, ${currentLocation.longitude.toFixed(6)}`}
               </Text>
             </View>
           )}
@@ -337,7 +468,9 @@ export default function EmergencySOS() {
           {policeStations.length === 0 && (
             <View style={styles.noResultsContainer}>
               <MapPin size={48} color={colors.textSecondary} />
-              <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.noResultsText, { color: colors.textSecondary }]}
+              >
                 No police stations found in your area
               </Text>
             </View>

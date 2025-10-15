@@ -5,7 +5,6 @@ import Constants from "expo-constants";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import ApiService from "../services/apiService";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -103,7 +102,7 @@ export default function ReportForm() {
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             config: {
@@ -354,7 +353,7 @@ export default function ReportForm() {
             {
               method: "POST",
               headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 config,
@@ -531,9 +530,12 @@ export default function ReportForm() {
         // Fallback to Expo's reverse geocoding if Google API fails
         const [address] = await Location.reverseGeocodeAsync(coords);
         const formattedAddress = address
-          ? `${address.street || ""}${address.street ? ", " : ""}${address.district || ""
-            }${address.district ? ", " : ""}${address.city || ""}${address.city ? ", " : ""
-            }${address.region || ""}${address.region ? ", " : ""}${address.postalCode || ""
+          ? `${address.street || ""}${address.street ? ", " : ""}${
+              address.district || ""
+            }${address.district ? ", " : ""}${address.city || ""}${
+              address.city ? ", " : ""
+            }${address.region || ""}${address.region ? ", " : ""}${
+              address.postalCode || ""
             }${address.postalCode ? ", " : ""}${address.country || ""}`.replace(
               /,\s*$/,
               ""
@@ -664,30 +666,41 @@ export default function ReportForm() {
   // Priority selector component
   const PrioritySelector = ({ selected, onSelect }) => {
     const priorities = ["Low", "Medium", "High"];
+    const { isDarkMode } = useTheme();
+    const colors = getTheme(isDarkMode);
 
     return (
-      <View style={styles.priorityContainer}>
-        <Text style={styles.label}>Priority Level</Text>
-        <View style={styles.priorityButtons}>
+      <View
+        style={[styles.priorityContainer, { backgroundColor: colors.surface }]}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Priority Level
+        </Text>
+        <View style={styles.priorityButtonsContainer}>
           {priorities.map((priority) => (
             <TouchableOpacity
               key={priority}
               style={[
                 styles.priorityButton,
-                selected === priority && styles.selectedPriority,
                 {
-                  backgroundColor: getPriorityColor(
-                    priority,
+                  backgroundColor:
                     selected === priority
-                  ),
+                      ? getPriorityColor(priority)
+                      : colors.inputBackground,
+                  borderColor: getPriorityColor(priority),
                 },
               ]}
               onPress={() => onSelect(priority)}
             >
               <Text
                 style={[
-                  styles.priorityText,
-                  selected === priority && styles.selectedPriorityText,
+                  styles.priorityButtonText,
+                  {
+                    color:
+                      selected === priority
+                        ? "#FFFFFF"
+                        : getPriorityColor(priority),
+                  },
                 ]}
               >
                 {priority}
@@ -700,13 +713,17 @@ export default function ReportForm() {
   };
 
   // Get priority color based on selection
-  const getPriorityColor = (priority, isSelected) => {
-    const colors = {
-      Low: isSelected ? "#4CAF50" : "#E8F5E9",
-      Medium: isSelected ? "#FFC107" : "#FFF8E1",
-      High: isSelected ? "#F44336" : "#FFEBEE",
-    };
-    return colors[priority];
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case "High":
+        return "#FF3B30"; // Red from your UI
+      case "Medium":
+        return "#FF9500"; // Orange from your UI
+      case "Low":
+        return "#32D74B"; // Green from your UI
+      default:
+        return "#007AFF"; // Default blue from your UI
+    }
   };
 
   // Handle form submission
@@ -723,19 +740,25 @@ export default function ReportForm() {
     }
 
     if (postAnonymous && media.length === 0) {
-      alert("Please add at least one evidence photo or video for anonymous posts.");
+      alert(
+        "Please add at least one evidence photo or video for anonymous posts."
+      );
       return;
     }
 
     if (!postAnonymous) {
       if (!fullName.trim() || !nicNumber.trim() || !contactNumber.trim()) {
-        alert("Please provide full name, NIC number, and contact number for non-anonymous posts.");
+        alert(
+          "Please provide full name, NIC number, and contact number for non-anonymous posts."
+        );
         return;
       }
     }
 
     // Convert contact number to number safely
-    const contactNum = contactNumber ? Number(contactNumber.replace(/\D/g, "")) : undefined;
+    const contactNum = contactNumber
+      ? Number(contactNumber.replace(/\D/g, ""))
+      : undefined;
 
     if (!postAnonymous && isNaN(contactNum)) {
       alert("Contact number must be a valid number.");
@@ -817,7 +840,9 @@ export default function ReportForm() {
         >
           <ChevronLeft size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>{subcategory}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {subcategory}
+        </Text>
       </View>
 
       <ScrollView
@@ -830,7 +855,9 @@ export default function ReportForm() {
         {/* Anonymous toggle */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Post Anonymous</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Post Anonymous
+            </Text>
             <Switch
               value={postAnonymous}
               onValueChange={(value) => {
@@ -852,12 +879,24 @@ export default function ReportForm() {
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <View style={styles.sectionHeader}>
             <MapPin size={20} color="#007AFF" />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>What is the Location?</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              What is the Location?
+            </Text>
           </View>
 
           {location ? (
-            <View style={[styles.selectedLocationContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
-              <Text style={[styles.selectedLocationText, { color: colors.text }]}>
+            <View
+              style={[
+                styles.selectedLocationContainer,
+                {
+                  backgroundColor: colors.inputBackground,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.selectedLocationText, { color: colors.text }]}
+              >
                 {location.address}
               </Text>
               <TouchableOpacity onPress={clearLocation}>
@@ -867,7 +906,14 @@ export default function ReportForm() {
           ) : (
             <>
               <TextInput
-                style={[styles.autocompleteInput, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+                style={[
+                  styles.autocompleteInput,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
                 placeholder="Search for a location"
                 value={query}
                 onChangeText={searchPlaces}
@@ -880,15 +926,26 @@ export default function ReportForm() {
                   keyExtractor={(item) => item.place_id}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={[styles.resultItem, { borderBottomColor: colors.border }]}
+                      style={[
+                        styles.resultItem,
+                        { borderBottomColor: colors.border },
+                      ]}
                       onPress={() =>
                         handleSelectPlace(item.place_id, item.description)
                       }
                     >
-                      <Text style={{ color: colors.text }}>{item.description}</Text>
+                      <Text style={{ color: colors.text }}>
+                        {item.description}
+                      </Text>
                     </TouchableOpacity>
                   )}
-                  style={[styles.resultsList, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[
+                    styles.resultsList,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   scrollEnabled={false} // Disable FlatList scrolling
                 />
               )}
@@ -966,11 +1023,16 @@ export default function ReportForm() {
                         coords
                       );
                       formattedAddress = address
-                        ? `${address.street || ""}${address.street ? ", " : ""
-                          }${address.district || ""}${address.district ? ", " : ""
-                          }${address.city || ""}${address.city ? ", " : ""}${address.region || ""
-                          }${address.region ? ", " : ""}${address.postalCode || ""
-                          }${address.postalCode ? ", " : ""}${address.country || ""
+                        ? `${address.street || ""}${
+                            address.street ? ", " : ""
+                          }${address.district || ""}${
+                            address.district ? ", " : ""
+                          }${address.city || ""}${address.city ? ", " : ""}${
+                            address.region || ""
+                          }${address.region ? ", " : ""}${
+                            address.postalCode || ""
+                          }${address.postalCode ? ", " : ""}${
+                            address.country || ""
                           }`.replace(/,\s*$/, "")
                         : "Selected Location";
                     }
@@ -992,11 +1054,26 @@ export default function ReportForm() {
 
         {/* Description */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Full Description</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Full Description
+          </Text>
 
           {/* Language Selector for Speech Recognition */}
-          <View style={[styles.languageSelectorContainer, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}>
-            <Text style={[styles.languageSelectorLabel, { color: colors.text }]}>Speech Language:</Text>
+          <View
+            style={[
+              styles.languageSelectorContainer,
+              {
+                backgroundColor: isDarkMode
+                  ? colors.inputBackground
+                  : "#F2F2F7",
+              },
+            ]}
+          >
+            <Text
+              style={[styles.languageSelectorLabel, { color: colors.text }]}
+            >
+              Speech Language:
+            </Text>
             <View style={styles.languageButtons}>
               {languageOptions.map((option) => (
                 <TouchableOpacity
@@ -1004,16 +1081,21 @@ export default function ReportForm() {
                   style={[
                     styles.languageButton,
                     selectedLanguage === option.code &&
-                    styles.languageButtonActive,
+                      styles.languageButtonActive,
                   ]}
                   onPress={() => setSelectedLanguage(option.code)}
                 >
                   <Text
                     style={[
                       styles.languageButtonText,
-                      { color: selectedLanguage === option.code ? '#FFFFFF' : colors.text },
+                      {
+                        color:
+                          selectedLanguage === option.code
+                            ? "#FFFFFF"
+                            : colors.text,
+                      },
                       selectedLanguage === option.code &&
-                      styles.languageButtonTextActive,
+                        styles.languageButtonTextActive,
                     ]}
                   >
                     {option.name}
@@ -1024,7 +1106,14 @@ export default function ReportForm() {
           </View>
 
           <TextInput
-            style={[styles.textArea, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.textArea,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             placeholder="Describe the issue in detail..."
             multiline
             numberOfLines={4}
@@ -1113,23 +1202,43 @@ export default function ReportForm() {
           </Text>
           <View style={styles.evidenceContainer}>
             <TouchableOpacity
-              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
+              style={[
+                styles.evidenceButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? colors.inputBackground
+                    : "#F2F2F7",
+                },
+              ]}
               onPress={captureMedia}
             >
               <Camera size={24} color="#8E8E93" />
-              <Text style={[styles.evidenceText, { color: colors.text }]}>Capture Media</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>
+                Capture Media
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.evidenceButton, { backgroundColor: isDarkMode ? colors.inputBackground : '#F2F2F7' }]}
+              style={[
+                styles.evidenceButton,
+                {
+                  backgroundColor: isDarkMode
+                    ? colors.inputBackground
+                    : "#F2F2F7",
+                },
+              ]}
               onPress={chooseMedia}
             >
               <ImageIcon size={24} color="#8E8E93" />
-              <Text style={[styles.evidenceText, { color: colors.text }]}>Choose Media</Text>
+              <Text style={[styles.evidenceText, { color: colors.text }]}>
+                Choose Media
+              </Text>
             </TouchableOpacity>
           </View>
           {media.length > 0 && (
             <>
-              <Text style={[styles.evidenceText, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.evidenceText, { color: colors.textSecondary }]}
+              >
                 {media.length} media item(s) selected
               </Text>
               <FlatList
@@ -1172,7 +1281,14 @@ export default function ReportForm() {
           </View>
 
           <TextInput
-            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             placeholder="Full Name"
             value={fullName}
             onChangeText={setFullName}
@@ -1182,7 +1298,14 @@ export default function ReportForm() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             placeholder="NIC number"
             value={nicNumber}
             onChangeText={setNicNumber}
@@ -1192,7 +1315,14 @@ export default function ReportForm() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colors.inputBackground,
+                borderColor: colors.border,
+                color: colors.text,
+              },
+            ]}
             placeholder="Contact number"
             value={contactNumber}
             onChangeText={setContactNumber}
@@ -1623,33 +1753,36 @@ const styles = StyleSheet.create({
   submitButtonDisabled: { backgroundColor: "#A0A0A0" },
   submitText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   priorityContainer: {
-    marginBottom: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  priorityButtons: {
+  priorityButtonsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
+    gap: 12,
+    marginTop: 16,
   },
   priorityButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  selectedPriority: {
-    borderColor: "#000",
-  },
-  priorityText: {
+  priorityButtonText: {
     fontSize: 14,
-    fontWeight: "500",
-  },
-  selectedPriorityText: {
-    color: "#FFFFFF",
     fontWeight: "600",
   },
   label: {
