@@ -1,7 +1,7 @@
 // API Service for backend communication
 import AsyncStorage from '@react-native-async-storage/async-storage';
-const BASE_URL = "http://172.20.10.4:3000/api";
-const FILE_BASE_URL = "http://172.20.10.4:3000"; // no /api
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+const FILE_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 class ApiService {
   // Get JWT token from storage

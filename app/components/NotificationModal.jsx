@@ -30,7 +30,7 @@ import { useRouter } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { getTheme } from "../utils/theme";
 
-const API_URL = "http://172.20.10.4:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function NotificationModal({ visible, notification, onClose }) {

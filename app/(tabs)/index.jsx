@@ -33,7 +33,7 @@ import { useTheme } from "../context/ThemeContext";
 import { getTheme } from "../utils/theme";
 import NotificationModal from "../components/NotificationModal";
 
-const API_URL = "http://172.20.10.4:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function Dashboard() {
   const router = useRouter();

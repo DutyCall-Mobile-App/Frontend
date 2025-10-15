@@ -27,7 +27,7 @@ import axios from "axios";
 import { useTheme } from "../context/ThemeContext";
 import { getTheme } from "../utils/theme";
 
-const API_URL = "http://172.20.10.4:3000";
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ReportDetails() {
   const router = useRouter();
