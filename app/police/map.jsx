@@ -8,14 +8,18 @@ import {
   Dimensions,
   Platform,
   Linking,
-  Alert
+  Alert,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { MaterialIcons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import ApiService from "../../services/apiService";
+import { router, usePathname } from "expo-router";
 
 // Add these helper functions at the top of your file
 const CLUSTER_RADIUS = 50000; // meters
@@ -29,9 +33,9 @@ const calculateDistanceInMeters = (lat1, lon1, lat2, lon2) => {
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
@@ -43,11 +47,11 @@ const findReportClusters = (reports) => {
   const clusters = [];
 
   // Filter reports within time window
-  const recentReports = reports.filter(report => 
-    now - new Date(report.submittedAt) <= TIME_WINDOW
+  const recentReports = reports.filter(
+    (report) => now - new Date(report.submittedAt) <= TIME_WINDOW
   );
 
-  recentReports.forEach(report => {
+  recentReports.forEach((report) => {
     let foundCluster = false;
 
     // Check existing clusters
@@ -63,8 +67,12 @@ const findReportClusters = (reports) => {
         cluster.reports.push(report);
         // Recalculate cluster center
         cluster.center = {
-          latitude: cluster.reports.reduce((sum, r) => sum + r.latitude, 0) / cluster.reports.length,
-          longitude: cluster.reports.reduce((sum, r) => sum + r.longitude, 0) / cluster.reports.length
+          latitude:
+            cluster.reports.reduce((sum, r) => sum + r.latitude, 0) /
+            cluster.reports.length,
+          longitude:
+            cluster.reports.reduce((sum, r) => sum + r.longitude, 0) /
+            cluster.reports.length,
         };
         foundCluster = true;
         break;
@@ -76,15 +84,15 @@ const findReportClusters = (reports) => {
       clusters.push({
         center: {
           latitude: report.latitude,
-          longitude: report.longitude
+          longitude: report.longitude,
         },
-        reports: [report]
+        reports: [report],
       });
     }
   });
 
   // Return only clusters with 3 or more reports
-  return clusters.filter(cluster => cluster.reports.length >= 3);
+  return clusters.filter((cluster) => cluster.reports.length >= 3);
 };
 
 // 📏 Calculate straight-line distance (km)
@@ -135,13 +143,14 @@ export default function PoliceMapScreen() {
   const [clusters, setClusters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentOfficerId, setCurrentOfficerId] = useState(null);
 
   // Fetch reports from backend
   const fetchReports = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await ApiService.getAllReports();
+      const data = await ApiService.getAllReportsForPolice();
 
       // Transform reports to include coordinates
       const formattedReports = data.map((report) => ({
@@ -150,19 +159,19 @@ export default function PoliceMapScreen() {
           report.description.substring(0, 50) +
           (report.description.length > 50 ? "..." : ""),
         priority: report.priority || "MEDIUM",
-        status: ApiService.mapStatus(report.status),
-        assignedOfficer: null, // Add officer assignment logic later
+        status: report.status || "Submitted",
+        assignedOfficer: report.assignedOfficer || null, // Add officer assignment logic later
+        assignedOfficerName: report.assignedOfficerName || "N/A",
         latitude: report.location?.latitude,
         longitude: report.location?.longitude,
-        submittedAt: new Date(report.createdAt)
+        submittedAt: new Date(report.createdAt),
       }));
 
       setReports(formattedReports);
-      
+
       // Find and set clusters
       const reportClusters = findReportClusters(formattedReports);
       setClusters(reportClusters);
-      
     } catch (error) {
       console.error("Error fetching reports:", error);
       setError("Failed to load reports");
@@ -178,14 +187,20 @@ export default function PoliceMapScreen() {
     switch (activeFilter) {
       case "active":
         return reports.filter(
-          (report) => report.status === "pending" || report.status === "inProgress"
+          (report) =>
+            report.status === "pending" || report.status === "inProgress"
         );
       case "assigned":
-        return reports.filter((report) => report.assignedOfficer);
+        return reports.filter(
+          (report) =>
+            report.assignedOfficer &&
+            report.assignedOfficer.toString() ===
+              currentOfficerId /* TODO: replace with actual officer ID */
+        );
       default:
         return reports;
     }
-  }, [reports, activeFilter]);
+  }, [reports, activeFilter, currentOfficerId]);
 
   // Add distance & drive time to reports when officer location is available
   const reportsWithDistance = useMemo(() => {
@@ -293,7 +308,16 @@ export default function PoliceMapScreen() {
       <TouchableOpacity
         key={item.id}
         style={styles.reportCard}
-        onPress={() => handleReportCardPress(item)}
+        onPress={() => {
+          mapRef.current?.animateToRegion({
+            latitude: item.latitude,
+            longitude: item.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+          bottomSheetRef.current?.snapToIndex(0); // Collapse bottom sheet
+          // Do NOT setSelectedReport here
+        }}
       >
         <View
           style={[
@@ -302,18 +326,18 @@ export default function PoliceMapScreen() {
               backgroundColor:
                 item.priority === "HIGH"
                   ? "#dc3545"
-                  : item.priority === "MED"
+                  : item.priority === "MEDIUM"
                   ? "#ffc107"
                   : "#28a745",
             },
           ]}
         />
         <View style={styles.reportInfo}>
-          <Text style={styles.reportId}>{item.id}</Text>
+          <Text style={styles.reportId}>#{item.id}</Text>
           <Text style={styles.reportTitle}>{item.title}</Text>
           <View style={styles.reportMeta}>
+            <Text style={styles.officerName}>{item.assignedOfficerName}</Text>
             <Text style={styles.distance}>{item.distance}</Text>
-            <Text style={styles.driveTime}>{item.driveTime}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -327,200 +351,247 @@ export default function PoliceMapScreen() {
   }, []);
 
   // TODO: Replace with actual officer ID from authentication/user context
-  const currentOfficerId = null;
-  
-    return (
+  useEffect(() => {
+    const loadOfficerId = async () => {
+      try {
+        const officer = await ApiService.getOfficerDetails();
+        setCurrentOfficerId(officer._id);
+      } catch (error) {
+        console.error("Error fetching officer details:", error);
+      }
+    };
+    loadOfficerId();
+  }, []);
+
+  return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-      {/* Status Bar Spacer */}
-      <View style={styles.statusBarSpacer} />
+        {/* Status Bar Spacer */}
+        <View style={styles.statusBarSpacer} />
 
-      {/* Header (Below Status Bar) */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Live Map</Text>
-      </View>
+        {/* Header (Below Status Bar) */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Live Map</Text>
+        </View>
 
-      {/* Filter Tabs (Pill-Shaped, Like Google Maps) */}
-      <View style={styles.filterTabs}>
-        <TouchableOpacity
-          style={[
-            styles.filterTab,
-            activeFilter === "all" && styles.filterTabActive,
-          ]}
-          onPress={() => setActiveFilter("all")}
-        >
-          <Text
-            style={[
-              styles.filterTabText,
-              activeFilter === "all" && styles.filterTabTextActive,
-            ]}
-          >
-            All Reports
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterTab,
-            activeFilter === "active" && styles.filterTabActive,
-          ]}
-          onPress={() => setActiveFilter("active")}
-        >
-          <Text
-            style={[
-              styles.filterTabText,
-              activeFilter === "active" && styles.filterTabTextActive,
-            ]}
-          >
-            Active
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterTab,
-            activeFilter === "assigned" && styles.filterTabActive,
-          ]}
-          onPress={() => setActiveFilter("assigned")}
-        >
-          <Text
-            style={[
-              styles.filterTabText,
-              activeFilter === "assigned" && styles.filterTabTextActive,
-            ]}
-          >
-            Assigned to Me
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Map */}
-      <MapView
-        ref={mapRef}
-        provider="google"
-        style={[styles.map, { height: mapHeight }]}
-        initialRegion={mapRegion}
-      >
-        {/* Render officer location */}
-        {officerLocation && (
-          <Marker
-            coordinate={officerLocation}
-            pinColor="blue"
-            title="Your Location"
-          />
-        )}
-
-        {/* Render report markers */}
-        {reportsWithDistance.map((report) => (
-          <Marker
-            key={report.id}
-            coordinate={{
-              latitude: report.latitude,
-              longitude: report.longitude,
-            }}
-            pinColor={getPinColor(report.priority)}
-            title={report.title}
-            onPress={() => handlePinPress(report)}
-          />
-        ))}
-
-        {/* Render cluster circles */}
-        {clusters.map((cluster, index) => (
-          <Circle
-            key={`cluster-${index}`}
-            center={cluster.center}
-            radius={CLUSTER_RADIUS}
-            fillColor="rgba(255, 0, 0, 0.2)"
-            strokeColor="rgba(255, 0, 0, 0.5)"
-            strokeWidth={2}
-          />
-        ))}
-      </MapView>
-
-      {/* My Location Button (Floating) */}
-      <TouchableOpacity
-        style={styles.myLocationButton}
-        onPress={centerToOfficer}
-      >
-        <Text style={styles.myLocationText}>📍</Text>
-      </TouchableOpacity>
-
-      {/* Custom Info Window */}
-      {selectedReport && (
-        <View style={styles.infoWindow}>
+        {/* Filter Tabs (Pill-Shaped, Like Google Maps) */}
+        <View style={styles.filterTabs}>
           <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setSelectedReport(null)}
+            style={[
+              styles.filterTab,
+              activeFilter === "all" && styles.filterTabActive,
+            ]}
+            onPress={() => setActiveFilter("all")}
           >
-            <Text style={styles.closeButtonText}>×</Text>
+            <Text
+              style={[
+                styles.filterTabText,
+                activeFilter === "all" && styles.filterTabTextActive,
+              ]}
+            >
+              All Reports
+            </Text>
           </TouchableOpacity>
-          <View style={styles.infoContent}>
-            <View style={styles.infoHeader}>
-              <View
-                style={[
-                  styles.priorityBadge,
-                  { backgroundColor: getPinColor(selectedReport.priority) },
-                ]}
-              >
-                <Text style={styles.priorityText}>
-                  {selectedReport.priority}
+          <TouchableOpacity
+            style={[
+              styles.filterTab,
+              activeFilter === "active" && styles.filterTabActive,
+            ]}
+            onPress={() => setActiveFilter("active")}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                activeFilter === "active" && styles.filterTabTextActive,
+              ]}
+            >
+              Active
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterTab,
+              activeFilter === "assigned" && styles.filterTabActive,
+            ]}
+            onPress={() => setActiveFilter("assigned")}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                activeFilter === "assigned" && styles.filterTabTextActive,
+              ]}
+            >
+              Assigned to Me
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Map */}
+        <MapView
+          ref={mapRef}
+          provider="google"
+          style={[styles.map, { height: mapHeight }]}
+          initialRegion={mapRegion}
+        >
+          {/* Render officer location with custom icon */}
+          {officerLocation && (
+            <Marker coordinate={officerLocation} title="Your Location">
+              <View style={{ alignItems: "center", justifyContent: "center" }}>
+                {/* Outer halo */}
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: "rgba(26, 115, 232, 0.2)",
+                    position: "absolute",
+                  }}
+                />
+                {/* Inner blue dot */}
+                <View
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: "#1a73e8",
+                    borderWidth: 2,
+                    borderColor: "#fff",
+                  }}
+                />
+              </View>
+            </Marker>
+          )}
+
+          {/* Render report markers */}
+          {reportsWithDistance.map((report) => (
+            <Marker
+              key={report.id}
+              coordinate={{
+                latitude: report.latitude,
+                longitude: report.longitude,
+              }}
+              pinColor={getPinColor(report.priority)}
+              title={report.title}
+              onPress={() => handlePinPress(report)}
+            />
+          ))}
+
+          {/* Render cluster circles */}
+          {clusters.map((cluster, index) => (
+            <Circle
+              key={`cluster-${index}`}
+              center={cluster.center}
+              radius={CLUSTER_RADIUS}
+              fillColor="rgba(255, 0, 0, 0.2)"
+              strokeColor="rgba(255, 0, 0, 0.5)"
+              strokeWidth={2}
+            />
+          ))}
+        </MapView>
+
+        {/* My Location Button (Floating) */}
+        <TouchableOpacity
+          style={styles.myLocationButton}
+          onPress={centerToOfficer}
+        >
+          <MaterialIcons name="my-location" size={28} color="#1a73e8" />
+        </TouchableOpacity>
+
+        {/* Custom Info Window */}
+        {selectedReport && (
+          <View style={styles.infoWindow}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSelectedReport(null)}
+            >
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+            <View style={styles.infoContent}>
+              <View style={styles.infoHeader}>
+                <View
+                  style={[
+                    styles.priorityBadge,
+                    { backgroundColor: getPinColor(selectedReport.priority) },
+                  ]}
+                >
+                  <Text style={styles.priorityText}>
+                    {selectedReport.priority}
+                  </Text>
+                </View>
+                <Text style={styles.infoTitle}>{selectedReport.title}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Assigned Officer:</Text>
+                <Text style={styles.infoValue}>
+                  {selectedReport.assignedOfficerName}
                 </Text>
               </View>
-              <Text style={styles.infoTitle}>{selectedReport.title}</Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Status:</Text>
+                <Text style={styles.infoValue}>{selectedReport.status}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Distance:</Text>
+                <Text style={styles.infoValue}>{selectedReport.distance}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Drive Time:</Text>
+                <Text style={styles.infoValue}>{selectedReport.driveTime}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewDetailsButton}
+                onPress={() => {
+                  router.push({
+                    pathname: "/police-screens/report-details",
+                    params: { id: selectedReport.id },
+                  });
+                  setSelectedReport(null);
+                }}
+              >
+                <Text style={styles.viewDetailsText}>View Details</Text>
+              </TouchableOpacity>
+              {/* Navigate Button */}
+              <TouchableOpacity
+                style={[
+                  styles.viewDetailsButton,
+                  { backgroundColor: "#34C759", marginTop: 8 },
+                ]}
+                onPress={() =>
+                  openMaps(selectedReport.latitude, selectedReport.longitude)
+                }
+              >
+                <Text style={styles.viewDetailsText}>Navigate</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Assigned Officer:</Text>
-              <Text style={styles.infoValue}>
-                {selectedReport.assignedOfficer === currentOfficerId
-                  ? "You"
-                  : selectedReport.assignedOfficer || "Not assigned"}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Distance:</Text>
-              <Text style={styles.infoValue}>{selectedReport.distance}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Drive Time:</Text>
-              <Text style={styles.infoValue}>{selectedReport.driveTime}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.viewDetailsButton}
-              onPress={() => {
-                Alert.alert(
-                  "Report Details",
-                  `Opening report: ${selectedReport.id}`
-                );
-                setSelectedReport(null);
-              }}
-            >
-              <Text style={styles.viewDetailsText}>View Details</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Bottom Sheet */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={0}
-        snapPoints={snapPoints}
-        enableDynamicSizing={false}
-        onChange={handleSheetChanges}
-        handleIndicatorStyle={styles.bottomSheetHandle}
-        backgroundStyle={[styles.bottomSheetBackground, { paddingBottom: 10 }]}
-        enablePanDownToClose={false}
-      >
-        <View style={styles.bottomSheetHeader}>
-          <Text style={styles.bottomSheetHeaderText}>
-            Nearby Reports ({reportsWithDistance.length})
-          </Text>
-        </View>
-        <BottomSheetScrollView
-          contentContainerStyle={styles.bottomSheetContent}
+        {/* Bottom Sheet */}
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          enableDynamicSizing={false}
+          onChange={handleSheetChanges}
+          handleIndicatorStyle={styles.bottomSheetHandle}
+          backgroundStyle={[
+            styles.bottomSheetBackground,
+            { paddingBottom: 10 },
+          ]}
+          enablePanDownToClose={false}
         >
-          {reportsWithDistance.map(renderItem)}
-        </BottomSheetScrollView>
-      </BottomSheet>
-    </View>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetHeaderText}>
+              Nearby Reports ({reportsWithDistance.length})
+            </Text>
+          </View>
+          <BottomSheetScrollView
+            contentContainerStyle={styles.bottomSheetContent}
+          >
+            {reportsWithDistance.map(renderItem)}
+          </BottomSheetScrollView>
+        </BottomSheet>
+      </View>
     </SafeAreaView>
   );
 }
@@ -700,5 +771,10 @@ const styles = StyleSheet.create({
   driveTime: {
     fontSize: 14,
     color: "#555",
+  },
+  officerName: {
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
   },
 });

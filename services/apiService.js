@@ -1,5 +1,5 @@
 // API Service for backend communication
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 const FILE_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -150,23 +150,23 @@ class ApiService {
   // Get officer details
   static async getOfficerDetails() {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem("token");
       const response = await fetch(`${BASE_URL}/auth/me`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch officer details');
+        throw new Error("Failed to fetch officer details");
       }
 
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.error('Error fetching officer details:', error);
+      console.error("Error fetching officer details:", error);
       throw error;
     }
   }
@@ -175,31 +175,35 @@ class ApiService {
   static async getPriorityReports() {
     try {
       const response = await fetch(`${BASE_URL}/reports/priority/list`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch priority reports');
+        throw new Error("Failed to fetch priority reports");
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch priority reports');
+        throw new Error(result.error || "Failed to fetch priority reports");
       }
 
-      return result.data.map(report => ({
+      return result.data.map((report) => ({
         id: report._id,
-        title: report.description.substring(0, 50) + (report.description.length > 50 ? '...' : ''),
-        location: report.location?.address || `${report.location?.latitude}, ${report.location?.longitude}`,
+        title:
+          report.description.substring(0, 50) +
+          (report.description.length > 50 ? "..." : ""),
+        location:
+          report.location?.address ||
+          `${report.location?.latitude}, ${report.location?.longitude}`,
         createdAt: report.createdAt,
         priority: report.priority,
-        status: report.status
+        status: report.status,
       }));
     } catch (error) {
-      console.error('Error fetching priority reports:', error);
+      console.error("Error fetching priority reports:", error);
       throw error;
     }
   }
@@ -208,31 +212,35 @@ class ApiService {
   static async getRecentReports() {
     try {
       const response = await fetch(`${BASE_URL}/reports/recent/list`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch recent reports');
+        throw new Error("Failed to fetch recent reports");
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch recent reports');
+        throw new Error(result.error || "Failed to fetch recent reports");
       }
 
-      return result.data.map(report => ({
+      return result.data.map((report) => ({
         id: report._id,
-        title: report.description.substring(0, 50) + (report.description.length > 50 ? '...' : ''),
-        location: report.location?.address || `${report.location?.latitude}, ${report.location?.longitude}`,
+        title:
+          report.description.substring(0, 50) +
+          (report.description.length > 50 ? "..." : ""),
+        location:
+          report.location?.address ||
+          `${report.location?.latitude}, ${report.location?.longitude}`,
         createdAt: report.createdAt,
         priority: report.priority,
-        status: report.status
+        status: report.status,
       }));
     } catch (error) {
-      console.error('Error fetching recent reports:', error);
+      console.error("Error fetching recent reports:", error);
       throw error;
     }
   }
@@ -241,24 +249,199 @@ class ApiService {
   static async getReportStats() {
     try {
       const response = await fetch(`${BASE_URL}/reports/stats/data`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch report stats');
+        throw new Error("Failed to fetch report stats");
       }
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch report stats');
+        throw new Error(result.error || "Failed to fetch report stats");
       }
 
       return result.data;
     } catch (error) {
-      console.error('Error fetching report stats:', error);
+      console.error("Error fetching report stats:", error);
+      throw error;
+    }
+  }
+
+  //seperate function to get all reports for police officers via frontend API service
+  static async getAllReportsForPolice() {
+    try {
+      const response = await fetch(`${BASE_URL}/reports/police/all`, {
+        method: "GET",
+        headers: await this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch reports for police: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch reports for police");
+    } catch (error) {
+      console.error("Error fetching reports for police:", error);
+      throw error;
+    }
+  }
+
+  //new function to assign report to me
+  static async assignReportToME(reportId) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/reports/${reportId}/assign-to-me`,
+        {
+          method: "POST",
+          headers: await this.getHeaders(),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to assign report to me");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to assign report to me");
+    } catch (error) {
+      console.error("Error assigning report to me:", error);
+      throw error;
+    }
+  }
+
+  // seperate function to get single report by ID for police
+  static async getReportByIdForPolice(reportId) {
+    try {
+      const response = await fetch(`${BASE_URL}/reports/${reportId}/police`, {
+        method: "GET",
+        headers: await this.getHeaders(),
+      });
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch report for police");
+    } catch (error) {
+      console.error("Error fetching police by ID:", error);
+      throw error;
+    }
+  }
+
+  // Update report fields (priority, status, assignedTo)
+  static async updateReportFieldsForPolice(reportId, updateData) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/reports/${reportId}/police/update`,
+        {
+          method: "PUT",
+          headers: await this.getHeaders(),
+          body: JSON.stringify(updateData),
+        }
+      );
+      if (!response.ok) throw new Error("Update failed");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to update report");
+    } catch (error) {
+      console.error("Error updating report:", error);
+      throw error;
+    }
+  }
+
+  // Get all officers
+  static async getAllOfficers() {
+    try {
+      const response = await fetch(`${BASE_URL}/auth/officers`, {
+        method: "GET",
+        headers: await this.getHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch officers");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch officers");
+    } catch (error) {
+      console.error("Error fetching officers:", error);
+      throw error;
+    }
+  }
+  // Get report timeline for police
+  static async getReportTimelineForPolice(reportId) {
+    try {
+      const response = await fetch(`${BASE_URL}/reports/${reportId}/timeline`, {
+        method: "GET",
+        headers: await this.getHeaders(),
+      });
+      if (!response.ok) throw new Error("Failed to fetch timeline");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to fetch timeline");
+    } catch (error) {
+      console.error("Error fetching timeline:", error);
+      throw error;
+    }
+  }
+  // Update status with history
+  static async updateReportStatusForPolice(reportId, status) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/reports/${reportId}/status/police`,
+        {
+          method: "PUT",
+          headers: await this.getHeaders(),
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (!response.ok) throw new Error("Status update failed");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to update status");
+    } catch (error) {
+      console.error("Error updating status:", error);
+      throw error;
+    }
+  }
+
+  // Update priority with history
+  static async updateReportPriorityForPolice(reportId, priority) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/reports/${reportId}/priority/police`,
+        {
+          method: "PUT",
+          headers: await this.getHeaders(),
+          body: JSON.stringify({ priority }),
+        }
+      );
+      if (!response.ok) throw new Error("Priority update failed");
+      const result = await response.json();
+      if (result.success) return result.data;
+      throw new Error(result.error || "Failed to update priority");
+    } catch (error) {
+      console.error("Error updating priority:", error);
+      throw error;
+    }
+  }
+  // Add this method
+  static async addNoteToReportForPolice(reportId, note) {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/reports/${reportId}/notes/police`,
+        {
+          method: "POST",
+          headers: await this.getHeaders(),
+          body: JSON.stringify({ note }),
+        }
+      );
+      if (!response.ok) throw new Error("Failed to add note");
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error("Error adding note:", error);
       throw error;
     }
   }
@@ -279,13 +462,17 @@ class ApiService {
   static formatReportForFrontend(report) {
     return {
       id: report._id,
-      title: report.description.substring(0, 50) + (report.description.length > 50 ? '...' : ''),
-      priority: report.priority || 'LOW',
+      title:
+        report.description.substring(0, 50) +
+        (report.description.length > 50 ? "..." : ""),
+      priority: report.priority || "LOW",
       status: report.status,
-      category: report.category || 'Uncategorized',
-      reporter: report.full_name || 'Anonymous',
+      category: report.category || "Uncategorized",
+      reporter: report.full_name || "Anonymous",
       timeAgo: this.getTimeAgo(report.createdAt),
-      location: report.location?.address || `${report.location?.latitude}, ${report.location?.longitude}`,
+      location:
+        report.location?.address ||
+        `${report.location?.latitude}, ${report.location?.longitude}`,
       createdAt: new Date(report.createdAt),
       date: report.createdAt, // Add date field for UI compatibility
       icon: this.getCategoryIcon(report.category),
@@ -295,10 +482,14 @@ class ApiService {
       contactNumber: report.contact_number,
       latitude: report.location?.latitude,
       longitude: report.location?.longitude,
-      evidence: report.evidence?.map(ev => ({
-        ...ev,
-        fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
-      })) || [], // ✅ only once
+      evidence:
+        report.evidence?.map((ev) => ({
+          ...ev,
+          fileUrl: ev.fileUrl ? ev.fileUrl.replace(/\\/g, "/") : null,
+        })) || [], // ✅ only once
+      notes: report.notes || [],
+      assignedOfficer: report.assignedOfficer || null,
+      assignedAt: report.assignedAt || null,
     };
   }
 
@@ -309,13 +500,13 @@ class ApiService {
     const seconds = Math.floor((now - date) / 1000);
 
     if (seconds < 60) return `${seconds} sec ago`;
-    
+
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes} min ago`;
-    
+
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} hours ago`;
-    
+
     const days = Math.floor(hours / 24);
     return `${days} days ago`;
   }
@@ -324,13 +515,13 @@ class ApiService {
   static getCategoryIcon(category) {
     // Map category to MaterialIcons name
     const iconMap = {
-      'public-safety': 'security',
-      'infrastructure': 'construction',
-      'environmental': 'nature',
-      'civil': 'gavel',
-      'community': 'people'
+      "public-safety": "security",
+      infrastructure: "construction",
+      environmental: "nature",
+      civil: "gavel",
+      community: "people",
     };
-    return iconMap[category] || 'report';
+    return iconMap[category] || "report";
   }
 }
 
